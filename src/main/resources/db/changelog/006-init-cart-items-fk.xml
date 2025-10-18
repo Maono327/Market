@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="6" author="ivan">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="products" />
+                <tableExists tableName="cart_items" />
+                <columnExists tableName="products" columnName="id"/>
+                <columnExists tableName="cart_items" columnName="product_id"/>
+            </and>
+        </preConditions>
+
+        <addForeignKeyConstraint
+                baseTableName="cart_items"
+                baseColumnNames="product_id"
+                referencedTableName="products"
+                referencedColumnNames="id"
+                constraintName="fk_cart_items_products"/>
+
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="cart_items" constraintName="fk_cart_items_products"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

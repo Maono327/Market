@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="3" author="ivan">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <not>
+                    <tableExists tableName="order_items" />
+                </not>
+                <dbms type="postgresql"/>
+            </and>
+        </preConditions>
+
+        <createTable tableName="order_items">
+            <column name="order_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="product_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="count" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="order_items"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
