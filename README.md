@@ -28,8 +28,12 @@ mvnw clean package
 ```
 
 Для формирование `Docker` образа выполните:
+для запуска тестов:
 ```shell
-mvnw clean package
+mvnw clean test
+```
+для сборки приложения
+```shell
 docker built -t market_app .
 ```
 # Запуск приложения
