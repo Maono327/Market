@@ -1,9 +1,7 @@
 package com.maono.marketapplication.controllers;
 
 import com.maono.marketapplication.models.Order;
-import com.maono.marketapplication.models.OrderItem;
-import com.maono.marketapplication.models.dto.OrderDto;
-import com.maono.marketapplication.models.dto.OrderItemDto;
+import com.maono.marketapplication.models.mappers.OrderDtoMapper;
 import com.maono.marketapplication.services.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -25,7 +23,7 @@ public class OrderController {
     public String getOrders(Model model) {
         List<Order> orders = orderService.findAll();
 
-        model.addAttribute("orders", orders.stream().map(this::mapToOrderDto).toList());
+        model.addAttribute("orders", orders.stream().map(OrderDtoMapper::mapToOrderDto).toList());
 
         return "product_orders";
     }
@@ -36,27 +34,10 @@ public class OrderController {
                           @RequestParam(name = "newOrder", required = false, defaultValue = "false") boolean newOrder) {
         Order order = orderService.findById(id);
 
-        model.addAttribute("order", mapToOrderDto(order));
+        model.addAttribute("order", OrderDtoMapper.mapToOrderDto(order));
         model.addAttribute("newOrder", newOrder);
 
         return "product_order";
-    }
-
-    protected OrderDto mapToOrderDto(Order order) {
-        return OrderDto.builder()
-                .id(order.getId())
-                .items(order.getItems().stream().map(this::mapToOrderItemDto).toList())
-                .totalSum(order.getTotalSum())
-                .build();
-    }
-
-    protected OrderItemDto mapToOrderItemDto(OrderItem orderItem) {
-        return OrderItemDto.builder()
-                .id(orderItem.getProduct().getId())
-                .title(orderItem.getProduct().getTitle())
-                .price(orderItem.getProduct().getPrice())
-                .count(orderItem.getCount())
-                .build();
     }
 
 }
