@@ -22,7 +22,7 @@ public class CustomDataFiller implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        log.warn("TEST DATA FILLING IS STARTED");
+        log.info("TEST DATA FILLING IS STARTED");
 
         if (productRepository.findProductByTitle("Книга") == null) {
             Product book = Product.builder()
@@ -80,6 +80,6 @@ public class CustomDataFiller implements ApplicationRunner {
         }
 
 
-        log.warn("TEST DATA FILLING IS FINISHED");
+        log.info("TEST DATA FILLING IS FINISHED");
     }
 }
