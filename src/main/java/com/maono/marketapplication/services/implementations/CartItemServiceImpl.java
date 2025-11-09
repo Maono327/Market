@@ -9,6 +9,7 @@ import com.maono.marketapplication.util.ProductActionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -66,5 +67,12 @@ public class CartItemServiceImpl implements CartItemService {
             cartItem.setProduct(null);
         });
         cartItemRepository.deleteAll();
+    }
+
+    @Override
+    public BigDecimal calculateTotalSum(List<CartItem> cartItems) {
+        return cartItems.stream()
+                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getCount())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

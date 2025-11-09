@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.util.Pair;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -19,6 +20,7 @@ import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDat
 import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDataProvider.buildOrderById;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.never;
@@ -81,10 +83,12 @@ class OrderServiceImplTest {
             });
             return o;
         });
+        when(cartItemService.calculateTotalSum(anyList())).thenReturn(BigDecimal.valueOf(31399.96));
         Order expected = buildOrder(3L, Pair.of(1L, 2), Pair.of(2L, 1), Pair.of(5L, 2));
         assertEquals(expected, orderService.buy());
         verify(cartItemService).findAll();
         verify(cartItemService).removeAll();
+        verify(cartItemService).calculateTotalSum(anyList());
         verify(orderRepository).save(any(Order.class));
         verify(orderRepository, never()).findById(anyLong());
         verifyNoMoreInteractions(orderRepository, cartItemService);

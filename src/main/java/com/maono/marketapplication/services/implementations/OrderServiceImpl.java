@@ -43,9 +43,7 @@ public class OrderServiceImpl implements OrderService {
 
         order.setItems(orderItems);
 
-        BigDecimal totalSum = cartItems.stream()
-                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getCount())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSum = cartItemService.calculateTotalSum(cartItems);
 
         order.setTotalSum(totalSum);
 

@@ -18,6 +18,7 @@ import java.util.List;
 
 import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.buildCartItemsList;
 import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.buildProductDtoList;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -39,7 +40,7 @@ class CartControllerTest {
     @Test
     public void test_getCartItems() throws Exception {
         when(cartItemService.findAll()).thenReturn(getCartItemList());
-
+        when(cartItemService.calculateTotalSum(anyList())).thenReturn(BigDecimal.valueOf(15399.97));
         mockMvc.perform(get("/cart/items"))
                 .andExpect(view().name("cart"))
                 .andExpect(model().attribute("items",
@@ -47,6 +48,7 @@ class CartControllerTest {
                 .andExpect(model().attribute("total", BigDecimal.valueOf(15399.97)))
                 .andExpect(status().isOk());
 
+        verify(cartItemService).calculateTotalSum(anyList());
         verify(cartItemService).findAll();
         verifyNoMoreInteractions(cartItemService);
     }
@@ -55,7 +57,7 @@ class CartControllerTest {
     public void test_changeProductCountInTheCart() throws Exception {
         doNothing().when(cartItemService).changeProductCountInTheCart(1L, ProductActionType.PLUS);
         when(cartItemService.findAll()).thenReturn(buildCartItemsList(Pair.of(1L, 3), Pair.of(2L, 3), Pair.of(4L, 1)));
-
+        when(cartItemService.calculateTotalSum(anyList())).thenReturn(BigDecimal.valueOf(16099.96));
         mockMvc.perform(post("/cart/items")
                     .param("id", "1")
                     .param("action", "PLUS"))
@@ -67,6 +69,7 @@ class CartControllerTest {
                 .andExpect(status().isOk());
 
         verify(cartItemService).changeProductCountInTheCart(1L, ProductActionType.PLUS);
+        verify(cartItemService).calculateTotalSum(anyList());
         verify(cartItemService).findAll();
         verifyNoMoreInteractions(cartItemService);
     }

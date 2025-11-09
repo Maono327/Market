@@ -42,9 +42,7 @@ public class CartController {
     protected void fillModelAttributes(Model model) {
         List<CartItem> cartItems = cartItemService.findAll();
 
-        BigDecimal totalSum = cartItems.stream()
-                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getCount())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSum = cartItemService.calculateTotalSum(cartItems);
 
         List<ProductDto> items = cartItems.stream()
                 .map(CartItem::getProduct)
