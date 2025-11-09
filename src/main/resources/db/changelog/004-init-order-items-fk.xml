@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="4" author="ivan">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="products" />
+                <tableExists tableName="orders" />
+                <tableExists tableName="order_items" />
+                <columnExists tableName="products" columnName="id"/>
+                <columnExists tableName="orders" columnName="id"/>
+            </and>
+        </preConditions>
+
+        <addPrimaryKey
+                tableName="order_items"
+                columnNames="order_id, product_id"
+                constraintName="pk_order_items"/>
+        <addForeignKeyConstraint
+                baseTableName="order_items"
+                baseColumnNames="product_id"
+                referencedTableName="products"
+                referencedColumnNames="id"
+                constraintName="fk_order_items_products"/>
+        <addForeignKeyConstraint
+                baseTableName="order_items"
+                baseColumnNames="order_id"
+                referencedTableName="orders"
+                referencedColumnNames="id"
+                constraintName="fk_order_items_orders"/>
+
+        <rollback>
+            <dropPrimaryKey tableName="order_items" constraintName="pk_order_items"/>
+            <dropForeignKeyConstraint baseTableName="order_items" constraintName="fk_order_items_orders"/>
+            <dropForeignKeyConstraint baseTableName="order_items" constraintName="fk_order_items_products"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
