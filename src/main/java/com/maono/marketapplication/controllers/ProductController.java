@@ -94,9 +94,9 @@ public class ProductController {
     }
 
     @PostMapping("/{id}")
-    public String changeProductCountInTheCart2(Model model,
-                                    @PathVariable("id") Long id,
-                                    @RequestParam("action") ProductActionType actionType) {
+    public String changeProductCountInTheCartOnProductPage(Model model,
+                                                           @PathVariable("id") Long id,
+                                                           @RequestParam("action") ProductActionType actionType) {
 
         cartItemService.changeProductCountInTheCart(id, actionType);
         Product product = productService.findProductById(id);

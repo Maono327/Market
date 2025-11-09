@@ -199,7 +199,7 @@ public class ProductControllerTest {
 
     @Test
     @Transactional
-    public void test_changeProductCountInTheCart2_PLUS() throws Exception {
+    public void test_changeProductCountInTheCartOnProductPage_PLUS() throws Exception {
         assertEquals(3, productService.findProductById(1L).getCartItem().getCount());
         mockMvc.perform(post("/items/{id}", 1L)
                         .param("action", "PLUS"))
@@ -212,7 +212,7 @@ public class ProductControllerTest {
 
     @Test
     @Transactional
-    public void test_changeProductCountInTheCart2_MINUS() throws Exception {
+    public void test_changeProductCountInTheCartOnProductPage_MINUS() throws Exception {
         assertEquals(3, productService.findProductById(1L).getCartItem().getCount());
         mockMvc.perform(post("/items/{id}", 1L)
                         .param("action", "MINUS"))

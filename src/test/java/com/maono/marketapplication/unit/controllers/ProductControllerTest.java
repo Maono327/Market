@@ -166,9 +166,9 @@ class ProductControllerTest {
                 .andExpect(status().isOk());
     }
 
-    @MethodSource("arguments_test_changeProductCountInTheCart2")
+    @MethodSource("arguments_test_changeProductCountInTheCartOnProductPage")
     @ParameterizedTest
-    public void test_changeProductCountInTheCart2(Long id, String actionType) throws Exception {
+    public void test_changeProductCountInTheCartOnProductPage(Long id, String actionType) throws Exception {
         ProductActionType actionParam = ProductActionType.valueOf(actionType);
         doNothing().when(cartItemService).changeProductCountInTheCart(id, actionParam);
 
@@ -181,7 +181,7 @@ class ProductControllerTest {
                 .andExpect(status().isOk());
     }
 
-    protected static Stream<Arguments> arguments_test_changeProductCountInTheCart2() {
+    protected static Stream<Arguments> arguments_test_changeProductCountInTheCartOnProductPage() {
         return Stream.of(
                 Arguments.of(1L, "PLUS"),
                 Arguments.of(2L, "MINUS"),
