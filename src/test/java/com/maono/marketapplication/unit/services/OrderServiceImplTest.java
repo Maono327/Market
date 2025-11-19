@@ -1,35 +1,32 @@
 package com.maono.marketapplication.unit.services;
 
 import com.maono.marketapplication.models.Order;
+import com.maono.marketapplication.repositories.OrderItemRepository;
 import com.maono.marketapplication.repositories.OrderRepository;
 import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.implementations.OrderServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.util.Pair;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
 
-import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.buildCartItemsList;
-import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDataProvider.buildOrder;
-import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDataProvider.buildOrderById;
+import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.cartItemList;
+import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDataProvider.order;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = {OrderServiceImpl.class, OrderRepository.class})
+@SpringBootTest(classes = {OrderServiceImpl.class})
 class OrderServiceImplTest {
     @Autowired
     protected OrderServiceImpl orderService;
@@ -37,60 +34,77 @@ class OrderServiceImplTest {
     protected OrderRepository orderRepository;
     @MockitoBean
     protected CartItemService cartItemService;
+    @MockitoBean
+    protected OrderItemRepository orderItemRepository;
 
     @Test
-    public void test_findAll() {
-        when(orderRepository.findAll()).thenReturn(List.of(buildOrderById(1L), buildOrderById(2L)));
-        List<Order> expected = List.of(buildOrderById(1L), buildOrderById(2L));
-        List<Order> result = orderService.findAll();
-        assertEquals(expected, result);
-        verify(orderRepository).findAll();
+    public void test_findAllWithRelations() {
+        List<Order> orders = List.of(
+                    order(1L, BigDecimal.valueOf(101 * 2 + 103))
+                            .withOrderItems()
+                            .orderItem(1L, 2)
+                            .orderItem(3L, 1)
+                            .getItems()
+                            .get(),
+                    order(2L, BigDecimal.valueOf(102 * 3 + 104 * 3))
+                            .withOrderItems()
+                            .orderItem(2L, 3)
+                            .orderItem(4L, 3)
+                            .getItems()
+                            .get()
+                );
+
+        when(orderRepository.findAllWithRelations()).thenReturn(Flux.fromIterable(orders));
+
+        StepVerifier.create(orderService.findAllWithRelations())
+                .expectNextCount(2)
+                .verifyComplete();
+
+        verify(orderRepository).findAllWithRelations();
         verifyNoMoreInteractions(orderRepository);
-        verifyNoInteractions(cartItemService);
+        verifyNoInteractions(cartItemService, orderItemRepository);
     }
 
     @Test
-    public void test_findById_success() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.ofNullable(buildOrderById(1L)));
-        Optional<Order> expected = Optional.ofNullable(buildOrderById(1L));
-        assertEquals(expected, orderRepository.findById(1L));
-        verify(orderRepository).findById(1L);
-        verifyNoMoreInteractions(orderRepository);
-        verifyNoInteractions(cartItemService);
-    }
+    public void test_findByIdWithRelations() {
+        when(orderRepository.findByIdWithRelations(1L)).thenReturn(
+                Mono.just(
+                    order(1L, BigDecimal.valueOf(102*3 + 103*2))
+                        .withOrderItems()
+                        .orderItem(2L, 3)
+                        .orderItem(3L, 2)
+                        .getItems()
+                        .get())
+        );
 
-    @Test
-    public void test_findById_throw_NoSuchElementException() {
-        when(orderRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(NoSuchElementException.class, () -> orderService.findById(1L));
-        verify(orderRepository).findById(1L);
-        verify(orderRepository, never()).findAll();
-        verify(orderRepository, never()).save(any());
-        verify(cartItemService, never()).findAll();
-        verify(cartItemService, never()).removeAll();
+        StepVerifier.create(orderService.findByIdWithRelations(1L))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        verify(orderRepository).findByIdWithRelations(1L);
+        verifyNoMoreInteractions(orderRepository);
+        verifyNoInteractions(cartItemService, orderItemRepository);
     }
 
     @Test
     public void test_buy() {
-        when(cartItemService.findAll()).thenReturn(buildCartItemsList(Pair.of(1L, 2), Pair.of(2L, 1), Pair.of(5L, 2)));
-        Order saveable = buildOrder(Pair.of(1L, 2), Pair.of(2L, 1), Pair.of(5L, 2));
-        when(orderRepository.save(saveable)).thenAnswer(invocation -> {
-            Order o = invocation.getArgument(0);
-            o.setId(3L);
-            o.getItems().forEach(item -> {
-                item.getId().setOrderId(3L);
-                item.getId().setProductId(item.getProduct().getId());
-            });
-            return o;
+        BigDecimal totalSum = BigDecimal.valueOf(101 * 2 + 102 * 3 + 103 + 104 * 4);
+        when(cartItemService.findAllWithRelations()).thenReturn(Flux.fromIterable(cartItemList(List.of(2, 3, 1, 4))));
+        when(cartItemService.calculateTotalSum(anyList())).thenReturn(totalSum);
+        when(orderItemRepository.saveOrderItems(anyList())).thenReturn(Mono.empty());
+        when(cartItemService.removeAll()).thenReturn(Mono.empty());
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order order = invocation.getArgument(0);
+            order.setId(1L);
+            return Mono.just(order);
         });
-        when(cartItemService.calculateTotalSum(anyList())).thenReturn(BigDecimal.valueOf(31399.96));
-        Order expected = buildOrder(3L, Pair.of(1L, 2), Pair.of(2L, 1), Pair.of(5L, 2));
-        assertEquals(expected, orderService.buy());
-        verify(cartItemService).findAll();
-        verify(cartItemService).removeAll();
-        verify(cartItemService).calculateTotalSum(anyList());
-        verify(orderRepository).save(any(Order.class));
-        verify(orderRepository, never()).findById(anyLong());
-        verifyNoMoreInteractions(orderRepository, cartItemService);
+
+        Order expected = order(1L, BigDecimal.valueOf(101 * 2 + 102 * 3 + 103 + 104 * 4)).get();
+
+        StepVerifier.create(orderService.buy())
+                .assertNext(order -> {
+                    assertEquals(expected, order);
+                })
+                .verifyComplete();
     }
 }
