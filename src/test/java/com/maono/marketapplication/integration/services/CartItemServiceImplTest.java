@@ -1,78 +1,90 @@
 package com.maono.marketapplication.integration.services;
 
-import com.maono.marketapplication.PostgresqlContainerConfiguration;
+import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.CartItem;
-import com.maono.marketapplication.repositories.CartItemRepository;
 import com.maono.marketapplication.services.CartItemService;
-import com.maono.marketapplication.services.ProductService;
 import com.maono.marketapplication.util.ProductActionType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import reactor.test.StepVerifier;
 
-import java.util.List;
-import java.util.Optional;
-
-import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.buildCartItemByProductId;
+import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.cartItem;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.bookProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.briefcaseProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.vaseProduct;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.data.relational.core.query.Criteria.where;
+import static org.springframework.data.relational.core.query.Query.query;
 
 @SpringBootTest
-@Import(PostgresqlContainerConfiguration.class)
+@Import(IntegrationTestConfiguration.class)
 public class CartItemServiceImplTest {
     @Autowired
     protected CartItemService cartItemService;
     @Autowired
-    protected ProductService productService;
+    protected R2dbcEntityTemplate r2dbcEntityTemplate;
     @Autowired
-    protected CartItemRepository cartItemRepository;
+    protected ResetDataManager resetDataManager;
 
     @Test
-    @Transactional
-    public void test_changeProductCountInTheCart_PLUS() {
-        assertEquals(3, productService.findProductById(1L).getCartItem().getCount());
-        cartItemService.changeProductCountInTheCart(1L, ProductActionType.PLUS);
-        assertEquals(4, productService.findProductById(1L).getCartItem().getCount());
-    }
+    public void test_changeProductCountInTheCart() {
+        StepVerifier.create(r2dbcEntityTemplate
+                .select(CartItem.class)
+                .matching(query(where("product_id").is(1L)))
+                .one())
+                .expectNextCount(1)
+                .verifyComplete();
 
+        StepVerifier.create(cartItemService.changeProductCountInTheCart(1L, ProductActionType.DELETE))
+                .expectNextCount(0)
+                .verifyComplete();
 
-    @Test
-    @Transactional
-    public void test_changeProductCountInTheCart_MINUS() {
-        assertEquals(3, productService.findProductById(1L).getCartItem().getCount());
-        cartItemService.changeProductCountInTheCart(1L, ProductActionType.MINUS);
-        assertEquals(2, productService.findProductById(1L).getCartItem().getCount());
-    }
+        StepVerifier.create(r2dbcEntityTemplate
+                        .select(CartItem.class)
+                        .matching(query(where("product_id").is(1L)))
+                        .one())
+                .expectNextCount(0)
+                .verifyComplete();
 
-
-    @Test
-    @Transactional
-    public void test_changeProductCountInTheCart_DELETE() {
-        assertEquals(Optional.ofNullable(buildCartItemByProductId(1L, 3)), cartItemRepository.findById(1L));
-        cartItemService.changeProductCountInTheCart(1L, ProductActionType.DELETE);
-        assertEquals(Optional.empty(), cartItemRepository.findById(1L));
+        resetDataManager.resetCartItems();
     }
 
     @Test
-    public void test_findAll() {
-        List<CartItem> expected = List.of(
-                    buildCartItemByProductId(1L, 3),
-                    buildCartItemByProductId(2L, 1),
-                    buildCartItemByProductId(5L, 2)
-
-                );
-
-        assertEquals(expected, cartItemService.findAll());
+    public void test_findAllWithRelations() {
+        StepVerifier.create(cartItemService.findAllWithRelations())
+                .assertNext(cartItem -> {
+                    CartItem expected = cartItem(1L, 3).withProduct(bookProduct().get()).get();
+                    assertEquals(expected, cartItem);
+                })
+                .assertNext(cartItem -> {
+                    CartItem expected = cartItem(2L, 1).withProduct(briefcaseProduct().get()).get();
+                    assertEquals(expected, cartItem);
+                })
+                .assertNext(cartItem -> {
+                    CartItem expected = cartItem(5L, 2).withProduct(vaseProduct().get()).get();
+                    assertEquals(expected, cartItem);
+                })
+                .verifyComplete();
     }
 
     @Test
-    @Transactional
     public void test_removeAll() {
-        assertFalse(cartItemService.findAll().isEmpty());
-        cartItemService.removeAll();
-        assertTrue(cartItemService.findAll().isEmpty());
+        StepVerifier.create(r2dbcEntityTemplate.select(CartItem.class).all())
+                .expectNextCount(3)
+                .verifyComplete();
+
+        StepVerifier.create(cartItemService.removeAll())
+                .expectNextCount(0)
+                .verifyComplete();
+
+        StepVerifier.create(r2dbcEntityTemplate.select(CartItem.class).all())
+                .expectNextCount(0)
+                .verifyComplete();
+
+        resetDataManager.resetCartItems();
     }
 }
