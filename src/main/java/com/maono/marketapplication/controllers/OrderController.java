@@ -1,17 +1,15 @@
 package com.maono.marketapplication.controllers;
 
-import com.maono.marketapplication.models.Order;
 import com.maono.marketapplication.models.mappers.OrderDtoMapper;
 import com.maono.marketapplication.services.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import java.util.List;
+import org.springframework.web.reactive.result.view.Rendering;
+import reactor.core.publisher.Mono;
 
 @Controller
 @RequestMapping("/orders")
@@ -20,24 +18,22 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    public String getOrders(Model model) {
-        List<Order> orders = orderService.findAll();
-
-        model.addAttribute("orders", orders.stream().map(OrderDtoMapper::mapToOrderDto).toList());
-
-        return "product_orders";
+    public Mono<Rendering> getOrders() {
+        return orderService.findAllWithRelations()
+                .collectList()
+                .map(orders -> Rendering.view("product_orders")
+                        .modelAttribute("orders", orders.stream().map(OrderDtoMapper::mapToOrderDto).toList())
+                        .build());
     }
 
     @GetMapping("/{id}")
-    public String getOder(Model model,
-                          @PathVariable Long id,
-                          @RequestParam(name = "newOrder", required = false, defaultValue = "false") boolean newOrder) {
-        Order order = orderService.findById(id);
-
-        model.addAttribute("order", OrderDtoMapper.mapToOrderDto(order));
-        model.addAttribute("newOrder", newOrder);
-
-        return "product_order";
+    public Mono<Rendering> getOder(@PathVariable Long id,
+                                   @RequestParam(required = false, defaultValue = "false") boolean newOrder) {
+        return orderService.findByIdWithRelations(id)
+                .map(order -> Rendering.view("product_order")
+                        .modelAttribute("order", OrderDtoMapper.mapToOrderDto(order))
+                        .modelAttribute("newOrder", newOrder)
+                        .build());
     }
 
 }
