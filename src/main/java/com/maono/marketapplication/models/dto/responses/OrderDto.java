@@ -1,5 +1,4 @@
-package com.maono.marketapplication.models.dto;
-
+package com.maono.marketapplication.models.dto.responses;
 
 import lombok.Builder;
 

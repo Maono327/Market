@@ -1,7 +1,7 @@
 # Описание проекта
 
 Данное приложение представляет из себя интернет магазин с возможностью добавлять товары в корзину, изменять их 
-количество и создавать закаказы из добавленных в корзину товаров. 
+количество и создавать закаказы из добавленных в корзину товаров, написанное на реактивном стеке.
 
 ## Скриншоты:
 Витрина:
@@ -27,12 +27,12 @@ mvnw test
 mvnw clean package
 ```
 
-Для формирование `Docker` образа выполните:
-для запуска тестов:
+Для формирование `Docker` необходимо выполнить ряд шагов.
+Поскольку в проекте используется `TestContainers`, тесты удобнее вызывать **до** сборки. Выполните:
 ```shell
 mvnw clean test
 ```
-для сборки приложения
+для сборки образа `Docker` выполните:
 ```shell
 docker built -t market_app .
 ```
@@ -45,7 +45,10 @@ docker built -t market_app .
 окружения:
 - `DB_USERNAME` - имя пользователя БД
 - `DB_PASSWORD` - пароль пользователя БД
-- `DB_URL` - url БД
+- `R2DBC_DB_URL` - url реактивного доступа к БД
+- `JDBC_DB_URL` - url для блокирующего доступа к БД
+
+Рактиыный url используется в самом приложении как основной. Блокирующий нужен для корректной работы миграции базы данных, его использует `liquebase`.
 
 И выполнить команду
 ```shell
@@ -63,16 +66,16 @@ java -jar --spring.profiles.active=TEST_DATA app.jar
 ### Независимо
 Для того, чтобы запустить `Docker` контейнер с приложением необходимо выполнить:
 ```shell
-docker run -d --name app -e DB_USERNAME=имя_пользователя_бд -e DB_PASSWORD=пароль -e DB_URL=URL -p внешний_порт:8080 market-app
+docker run -d --name app -e DB_USERNAME=имя_пользователя_бд -e DB_PASSWORD=пароль -e R2DBC_DB_URL=реактивный_url -e JDBC_DB_URL=блокирующий_url -p внешний_порт:8080 market-app
 ```
 заменив соответствующие переменные окружения.
 
 Чтобы выполнить запуск с профилем необходимо выоплнить:
 ```shell
-docker run -d --name app -e SPRING_PROFILES_ACTIVE=TEST_DATA -e DB_USERNAME=имя_пользователя_бд -e DB_PASSWORD=пароль -e DB_URL=URL -p внешний_порт:8080 market-app
+docker run -d --name app -e SPRING_PROFILES_ACTIVE=TEST_DATA -e DB_USERNAME=имя_пользователя_бд -e DB_PASSWORD=пароль -e R2DBC_DB_URL=реактивный_url -e JDBC_DB_URL=блокирующий_url -p внешний_порт:8080 market-app
 ```
 Учтите, что в данном случае вам придется дополнительно пробросить порты от базы данных к контейнеру приложения, если они
-запущены независимо (БД не в контейнере).
+запущены независимо (БД не в контейнере или не используется docker-сеть между ними).
 
 ### Только контейнеры
 В случае, если испльзуется контейнер с базой данных, необходимо создаь сеть, через которую приложение получиьт доступ к БД:
@@ -82,14 +85,13 @@ docker network create имя_сети
 
 Для того, чтобы запустить контейнер с базой данных необхоидмо выполнить:
 ```shell
-docker run -d --name db --network имя_сети -e POSTGRES_DB=имя_бд -e POSTGRES_USER=имя_пользователя -e POSTGRES_PASSWORD=qweqwe postgres:15
+docker run -d --name db --network имя_сети -e POSTGRES_DB=имя_бд -e POSTGRES_USER=имя_пользователя -e POSTGRES_PASSWORD=пароль postgres:15
 ```
 
 Затем можно запустить контейнер с приложением:
 ```shell
-docker run -d --name app --network имя_сети -e SPRING_PROFILES_ACTIVE=TEST_DATA -e DB_USERNAME=имя_пользователя_бд -e DB_PASSWORD=пароль -e DB_URL=URL -p внешний_порт:8080 market-app
+docker run -d --name имя_контейнера --network имя_сети -e SPRING_PROFILES_ACTIVE=TEST_DATA -e DB_PASSWORD=пароль -e DB_USERNAME=имя_пользователя -e R2DBC_DB_URL=реактивный_url_к_бд -e JDBC_DB_URL=блокирующий_url_к_БД -p 8080:8080 имя_контейнера 
 ```
-
 # Итог
 Если все было сделано верно, приложение будет запущено на `localhost:8080/`
 

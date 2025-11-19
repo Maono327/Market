@@ -3,120 +3,96 @@ package com.maono.marketapplication.util;
 import com.maono.marketapplication.models.Order;
 import com.maono.marketapplication.models.OrderItem;
 import com.maono.marketapplication.models.Product;
-import com.maono.marketapplication.models.dto.OrderDto;
-import com.maono.marketapplication.models.dto.OrderItemDto;
-import com.maono.marketapplication.models.util.OrderItemId;
-import org.springframework.data.util.Pair;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
-import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.buildProductById;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.productByIdTemplate;
+
 
 public class ExpectedOrderAndOrderItemsTestDataProvider {
 
-    public static List<Order> buildOrderList(Long... orders) {
-        return Arrays.stream(orders).map(ExpectedOrderAndOrderItemsTestDataProvider::buildOrderById).toList();
+    public static class StagedOrderTestDataBuilder {
+        private final Order order;
+        private final boolean autoCalculateTotalSum;
+
+        public StagedOrderTestDataBuilder(Order order, boolean autoCalculateTotalSum) {
+            this.order = order;
+            this.autoCalculateTotalSum = autoCalculateTotalSum;
+        }
+
+        public StagedOrderAndOrderItemsTestDataBuilder withOrderItems() {
+            return new StagedOrderAndOrderItemsTestDataBuilder(this, order);
+        }
+
+        public Order get() {
+            if (autoCalculateTotalSum && !order.getItems().isEmpty()) {
+                BigDecimal totalSum = order.getItems().stream()
+                        .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getCount())))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                order.setTotalSum(totalSum);
+            }
+            return order;
+        }
     }
 
-    public static Order buildOrderById(long orderId) {
-        if (orderId == 1L) return buildOrder(1L, Pair.of(1L, 2), Pair.of(4L, 1));
-        if (orderId == 2L) return buildOrder(2L, Pair.of(1L, 3), Pair.of(3L, 1), Pair.of(4L, 1), Pair.of(5L, 2));
-        return null;
-    }
-
-    public static Order buildOrder(Pair<Long, Integer>... products) {
-        Order order = new Order();
-
-        List<OrderItem> orderItems = Arrays.stream(products)
-                .map(product ->
-                        buildOrderItem(order, buildProductById(product.getFirst()), product.getSecond()))
-                .toList();
-        order.setItems(orderItems);
-
-        order.setTotalSum(orderItems.stream()
-                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getCount())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-        return order;
-    }
-
-    public static Order buildOrder(Long orderId, Pair<Long, Integer>... products) {
-        Order order = new Order();
-        order.setId(orderId);
-
-        List<OrderItem> orderItems = Arrays.stream(products)
-                .map(product -> buildOrderItem(order, product.getFirst(), product.getSecond()))
-                .toList();
-
-        order.setItems(orderItems);
-        order.setTotalSum(orderItems.stream()
-                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getCount())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-        return order;
-    }
-
-    public static OrderItem buildOrderItem(Order order, Long productId, int count) {
-        OrderItemId orderItemId = new OrderItemId(order.getId(), productId);
-        return OrderItem.builder()
-                .id(orderItemId)
-                .order(order)
-                .product(buildProductById(productId))
-                .count(count)
+    public static StagedOrderTestDataBuilder order(Long id, BigDecimal totalSum) {
+        Order order = Order.builder()
+                .id(id)
+                .totalSum(totalSum)
                 .build();
+
+        return new StagedOrderTestDataBuilder(order, false);
     }
 
-    public static OrderItem buildOrderItem(Order order, Product product, int count) {
-        OrderItemId orderItemId = new OrderItemId();
-        return OrderItem.builder()
-                .id(orderItemId)
-                .order(order)
-                .product(product)
-                .count(count)
+    public static StagedOrderTestDataBuilder order(Long id) {
+        Order order = Order.builder()
+                .id(id)
                 .build();
+
+        return new StagedOrderTestDataBuilder(order, true);
     }
 
-    public static Order buildOrderWithManagedEntities(Pair<Product, Integer>... products) {
-        Order order = new Order();
+    public static class StagedOrderAndOrderItemsTestDataBuilder {
+        private final StagedOrderTestDataBuilder orderTestDataBuilder;
+        private final Order order;
+        private final List<OrderItem> orderItems;
 
-        List<OrderItem> orderItems = Arrays.stream(products)
-                .map(product ->
-                        buildOrderItemWithManagedEntities(order, product.getFirst(), product.getSecond()))
-                .toList();
-        order.setItems(orderItems);
+        public StagedOrderAndOrderItemsTestDataBuilder(StagedOrderTestDataBuilder orderTestDataBuilder, Order order) {
+            this.orderTestDataBuilder = orderTestDataBuilder;
+            this.order = order;
+            orderItems = new ArrayList<>();
+        }
 
-        order.setTotalSum(orderItems.stream()
-                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getCount())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-        return order;
-    }
+        public StagedOrderAndOrderItemsTestDataBuilder orderItem(Long productId, int count) {
+            Product p = productByIdTemplate(productId).get();
+            OrderItem item = OrderItem.builder()
+                    .orderId(order.getId())
+                    .order(order)
+                    .productId(productId)
+                    .product(p)
+                    .count(count)
+                    .build();
+            orderItems.add(item);
+            return this;
+        }
 
-    public static OrderItem buildOrderItemWithManagedEntities(Order order, Product product, int count) {
-        OrderItemId orderItemId = new OrderItemId();
-        return OrderItem.builder()
-                .id(orderItemId)
-                .order(order)
-                .product(product)
-                .count(count)
-                .build();
-    }
+        public StagedOrderAndOrderItemsTestDataBuilder orderItem(Product product, int count) {
+            OrderItem item = OrderItem.builder()
+                    .orderId(order.getId())
+                    .order(order)
+                    .productId(product.getId())
+                    .product(product)
+                    .count(count)
+                    .build();
+            orderItems.add(item);
+            return this;
+        }
 
-    public static OrderDto mapToOrderDto(Order order) {
-        return OrderDto.builder()
-                .id(order.getId())
-                .items(order.getItems().stream()
-                        .map(ExpectedOrderAndOrderItemsTestDataProvider::mapToOrderItemDto)
-                        .toList())
-                .totalSum(order.getTotalSum())
-                .build();
-    }
-
-    public static OrderItemDto mapToOrderItemDto(OrderItem orderItem) {
-        return OrderItemDto.builder()
-                .id(orderItem.getProduct().getId())
-                .title(orderItem.getProduct().getTitle())
-                .price(orderItem.getProduct().getPrice())
-                .count(orderItem.getCount())
-                .build();
+        public StagedOrderTestDataBuilder getItems() {
+            order.setItems(orderItems);
+            return orderTestDataBuilder;
+        }
     }
 }

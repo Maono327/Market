@@ -1,4 +1,4 @@
-package com.maono.marketapplication.models.dto;
+package com.maono.marketapplication.models.dto.responses;
 
 public record ProductsPageParametersDto(int pageSize,
                                         int pageNumber,

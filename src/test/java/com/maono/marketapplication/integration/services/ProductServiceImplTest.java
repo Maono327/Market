@@ -1,99 +1,192 @@
 package com.maono.marketapplication.integration.services;
 
-import com.maono.marketapplication.PostgresqlContainerConfiguration;
+import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.Product;
+import com.maono.marketapplication.repositories.util.Page;
 import com.maono.marketapplication.services.ProductService;
 import com.maono.marketapplication.util.ProductSortType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 
-import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.buildProductById;
-import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.buildProductByIdWithCartItem;
-import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.getPage;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.bookProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.briefcaseProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.page;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.polaroidProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.umbrellaProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.vaseProduct;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-@Import(PostgresqlContainerConfiguration.class)
+@Import(IntegrationTestConfiguration.class)
 public class ProductServiceImplTest {
     @Autowired
     protected ProductService productService;
 
     @Test
     public void test_findByPage() {
-        Page<Product> expected = getPage(PageRequest.of(0,5, Sort.unsorted()), List.of(
-                buildProductByIdWithCartItem(1L, 3),
-                buildProductByIdWithCartItem(2L, 1),
-                buildProductById(3L),
-                buildProductById(4L),
-                buildProductByIdWithCartItem(5L, 2)
-        ));
+        Page<Product> expected = page(
+                List.of(bookProduct().withCartItemByCount(3).get(),
+                        briefcaseProduct().withCartItemByCount(1).get(),
+                        polaroidProduct().get(),
+                        umbrellaProduct().get(),
+                        vaseProduct().withCartItemByCount(2).get()),
+                5,
+                1,
+                false,
+                false,
+                1
+        );
 
-        assertEquals(expected, productService.findByPage("",
-                ProductSortType.NO, 5, 0));
+        StepVerifier.create(productService.findByPage("", ProductSortType.NO, 5, 1))
+                .assertNext(productPage -> {
+                    List<CartItem> expectedCartItems =  expected.items().stream().map(Product::getCartItem).toList();
+                    List<CartItem> pageCartItems = productPage.items().stream().map(Product::getCartItem).toList();
+
+                    assertEquals(expectedCartItems, pageCartItems);
+                    assertEquals(expected.items(), productPage.items());
+                    assertEquals(expected.pageSize(), productPage.pageSize());
+                    assertEquals(expected.pageNumber(), productPage.pageNumber());
+                    assertFalse(productPage.hasNext());
+                    assertFalse(productPage.hasPrevious());
+                    assertEquals(expected.totalPages(), productPage.totalPages());
+                })
+                .verifyComplete();
     }
 
     @Test
     public void test_findByPage_search() {
-        Page<Product> expected = getPage(PageRequest.of(0,5, Sort.unsorted()), List.of(
-                buildProductByIdWithCartItem(2L, 1),
-                buildProductById(4L)
-        ));
+        Page<Product> expected = page(
+                List.of(briefcaseProduct().withCartItemByCount(1).get(),
+                        umbrellaProduct().get()),
+                5,
+                1,
+                false,
+                false,
+                1
+        );
 
-        assertEquals(expected, productService.findByPage("о",
-                ProductSortType.NO, 5, 0));
+        StepVerifier.create(productService.findByPage("о", ProductSortType.NO, 5, 1))
+                .assertNext(productPage -> {
+                    List<CartItem> expectedCartItems =  expected.items().stream().map(Product::getCartItem).toList();
+                    List<CartItem> pageCartItems = productPage.items().stream().map(Product::getCartItem).toList();
+
+                    assertEquals(expectedCartItems, pageCartItems);
+                    assertEquals(expected.items(), productPage.items());
+                    assertEquals(expected.pageSize(), productPage.pageSize());
+                    assertEquals(expected.pageNumber(), productPage.pageNumber());
+                    assertFalse(productPage.hasNext());
+                    assertFalse(productPage.hasPrevious());
+                    assertEquals(expected.totalPages(), productPage.totalPages());
+                })
+                .verifyComplete();
     }
 
     @Test
     public void test_findByPage_sort_alpha() {
-        Page<Product> expected = getPage(PageRequest.of(0,5,
-                                                                    Sort.by("title").ascending()), List.of(
-                buildProductById(3L),
-                buildProductByIdWithCartItem(5L, 2),
-                buildProductById(4L),
-                buildProductByIdWithCartItem(1L, 3),
-                buildProductByIdWithCartItem(2L, 1)
-        ));
+        Page<Product> expected = page(
+                List.of(polaroidProduct().get(),
+                        vaseProduct().withCartItemByCount(2).get(),
+                        umbrellaProduct().get(),
+                        bookProduct().withCartItemByCount(3).get(),
+                        briefcaseProduct().withCartItemByCount(1).get()),
+                5,
+                1,
+                false,
+                false,
+                1
+        );
 
-        assertEquals(expected, productService.findByPage("",
-                ProductSortType.ALPHA, 5, 0));
+        StepVerifier.create(productService.findByPage("", ProductSortType.ALPHA, 5, 1))
+                .assertNext(productPage -> {
+                    List<CartItem> expectedCartItems =  expected.items().stream().map(Product::getCartItem).toList();
+                    List<CartItem> pageCartItems = productPage.items().stream().map(Product::getCartItem).toList();
+
+                    assertEquals(expectedCartItems, pageCartItems);
+                    assertEquals(expected.items(), productPage.items());
+                    assertEquals(expected.pageSize(), productPage.pageSize());
+                    assertEquals(expected.pageNumber(), productPage.pageNumber());
+                    assertFalse(productPage.hasNext());
+                    assertFalse(productPage.hasPrevious());
+                    assertEquals(expected.totalPages(), productPage.totalPages());
+                })
+                .verifyComplete();
     }
 
     @Test
     public void test_findByPage_sort_price() {
-        Page<Product> expected = getPage(PageRequest.of(0,5,
-                Sort.by("price").ascending()), List.of(
-                buildProductByIdWithCartItem(1L, 3),
-                buildProductById(4L),
-                buildProductByIdWithCartItem(2L, 1),
-                buildProductById(3L),
-                buildProductByIdWithCartItem(5L, 2)
-        ));
+        Page<Product> expected = page(
+                List.of(bookProduct().withCartItemByCount(3).get(),
+                        umbrellaProduct().get(),
+                        briefcaseProduct().withCartItemByCount(1).get(),
+                        polaroidProduct().get(),
+                        vaseProduct().withCartItemByCount(2).get()),
+                5,
+                1,
+                false,
+                false,
+                1
+        );
 
-        assertEquals(expected, productService.findByPage("",
-                ProductSortType.PRICE, 5, 0));
+        StepVerifier.create(productService.findByPage("", ProductSortType.PRICE, 5, 1))
+                .assertNext(productPage -> {
+                    List<CartItem> expectedCartItems =  expected.items().stream().map(Product::getCartItem).toList();
+                    List<CartItem> pageCartItems = productPage.items().stream().map(Product::getCartItem).toList();
+
+                    assertEquals(expectedCartItems, pageCartItems);
+                    assertEquals(expected.items(), productPage.items());
+                    assertEquals(expected.pageSize(), productPage.pageSize());
+                    assertEquals(expected.pageNumber(), productPage.pageNumber());
+                    assertFalse(productPage.hasNext());
+                    assertFalse(productPage.hasPrevious());
+                    assertEquals(expected.totalPages(), productPage.totalPages());
+                })
+                .verifyComplete();
     }
 
     @Test
     public void test_findByPage_mixed() {
-        Page<Product> expected = getPage(PageRequest.of(0,2, Sort.by("price").ascending()),
-            List.of(
-                    buildProductById(4L),
-                    buildProductByIdWithCartItem(2L, 1)
-            ));
+        Page<Product> expected = page(
+                List.of(briefcaseProduct().withCartItemByCount(1).get(),
+                        polaroidProduct().get()),
+                2,
+                2,
+                true,
+                true,
+                3
+        );
 
-        assertEquals(expected, productService.findByPage("о",
-                ProductSortType.PRICE, 2, 0));
+        StepVerifier.create(productService.findByPage("", ProductSortType.PRICE, 2, 2))
+                .assertNext(productPage -> {
+                    List<CartItem> expectedCartItems =  expected.items().stream().map(Product::getCartItem).toList();
+                    List<CartItem> pageCartItems = productPage.items().stream().map(Product::getCartItem).toList();
+
+                    assertEquals(expectedCartItems, pageCartItems);
+                    assertEquals(expected.items(), productPage.items());
+                    assertEquals(expected.pageSize(), productPage.pageSize());
+                    assertEquals(expected.pageNumber(), productPage.pageNumber());
+                    assertTrue(productPage.hasNext());
+                    assertTrue(productPage.hasPrevious());
+                    assertEquals(expected.totalPages(), productPage.totalPages());
+                })
+                .verifyComplete();
     }
 
     @Test
-    public void test_findProductById() {
-        assertEquals(buildProductByIdWithCartItem(1L, 3), productService.findProductById(1L));
+    public void test_findProductByIdWithRelations() {
+        StepVerifier.create(productService.findProductByIdWithRelations(1L))
+                .assertNext(product -> {
+                    Product expected = bookProduct().withCartItemByCount(3).get();
+                    assertEquals(expected, product);
+                    assertEquals(expected.getCartItem(), product.getCartItem());
+                })
+                .verifyComplete();
     }
 }

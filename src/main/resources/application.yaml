@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: MarketApplication
+
+  r2dbc:
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    url: ${R2DBC_DB_URL}
+
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+    enabled: true
+    url: ${JDBC_DB_URL}
+    user: ${DB_USERNAME}
+    password: ${DB_PASSWORD}

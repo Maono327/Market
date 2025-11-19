@@ -1,56 +1,107 @@
 package com.maono.marketapplication.integration.services;
 
-import com.maono.marketapplication.PostgresqlContainerConfiguration;
+import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.ResetDataManager;
+import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.Order;
-import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.util.Pair;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import reactor.test.StepVerifier;
 
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.math.BigDecimal;
 
-import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDataProvider.buildOrder;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDataProvider.order;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.bookProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.polaroidProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.umbrellaProduct;
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.vaseProduct;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.data.relational.core.query.Criteria.where;
+import static org.springframework.data.relational.core.query.Query.query;
 
 @SpringBootTest
-@Import(PostgresqlContainerConfiguration.class)
+@Import(IntegrationTestConfiguration.class)
 public class OrderServiceImplTest {
     @Autowired
     protected OrderService orderService;
     @Autowired
-    protected CartItemService cartItemService;
+    protected R2dbcEntityTemplate r2dbcEntityTemplate;
+    @Autowired
+    protected ResetDataManager resetDataManager;
 
     @Test
-    public void test_findAll() {
-        List<Order> expected = List.of(
-                buildOrder(1L, Pair.of(1L, 2), Pair.of(4L, 1)),
-                buildOrder(2L, Pair.of(1L, 3), Pair.of(3L, 1), Pair.of(4L, 1), Pair.of(5L, 2))
-        );
-        assertEquals(expected, orderService.findAll());
+    public void test_findAllWithRelations() {
+        StepVerifier.create(orderService.findAllWithRelations())
+                .assertNext(order -> {
+                    Order expected = order(1L).withOrderItems()
+                            .orderItem(bookProduct().get(), 2)
+                            .orderItem(umbrellaProduct().get(), 1)
+                            .getItems().get();
+                    assertEquals(expected, order);
+                })
+                .assertNext(order -> {
+                    Order expected = order(2L).withOrderItems()
+                            .orderItem(bookProduct().get(), 3)
+                            .orderItem(polaroidProduct().get(), 1)
+                            .orderItem(umbrellaProduct().get(), 1)
+                            .orderItem(vaseProduct().get(), 2)
+                            .getItems().get();
+                    assertEquals(expected, order);
+                })
+                .verifyComplete();
     }
 
     @Test
-    public void test_findById() {
-        assertEquals(buildOrder(1L, Pair.of(1L, 2), Pair.of(4L, 1)), orderService.findById(1L));
+    public void test_findByIdWithRelations() {
+        StepVerifier.create(orderService.findByIdWithRelations(1L))
+                .assertNext(order -> {
+                    Order expected = order(1L).withOrderItems()
+                            .orderItem(bookProduct().get(), 2)
+                            .orderItem(umbrellaProduct().get(), 1)
+                            .getItems().get();
+                    assertEquals(expected, order);
+                })
+                .verifyComplete();
+
+        StepVerifier.create(orderService.findByIdWithRelations(2L))
+                .assertNext(order -> {
+                    Order expected = order(2L).withOrderItems()
+                            .orderItem(bookProduct().get(), 3)
+                            .orderItem(polaroidProduct().get(), 1)
+                            .orderItem(umbrellaProduct().get(), 1)
+                            .orderItem(vaseProduct().get(), 2)
+                            .getItems().get();
+                    assertEquals(expected, order);
+                })
+                .verifyComplete();
     }
 
     @Test
-    @Transactional
     public void test_buy() {
-        assertFalse(cartItemService.findAll().isEmpty());
-        assertThrows(NoSuchElementException.class, () -> orderService.findById(3L));
-        orderService.buy();
-        assertTrue(cartItemService.findAll().isEmpty());
-        assertDoesNotThrow(() -> orderService.findById(3L));
-        assertEquals(buildOrder(3L, Pair.of(1L, 3), Pair.of(2L, 1), Pair.of(5L, 2)), orderService.findById(3L));
+        StepVerifier.create(r2dbcEntityTemplate.select(CartItem.class).all()).expectNextCount(3).verifyComplete();
+        StepVerifier.create(r2dbcEntityTemplate
+                .select(Order.class)
+                .matching(query(where("id").is(3L)))
+                        .one())
+                .expectNextCount(0).verifyComplete();
+
+        StepVerifier.create(orderService.buy())
+                        .assertNext(order -> {
+                            Order expected = order(3L, BigDecimal.valueOf(32099.95)).get();
+                            assertEquals(expected, order);
+                        }).verifyComplete();
+
+        StepVerifier.create(r2dbcEntityTemplate.select(CartItem.class).all()).expectNextCount(0).verifyComplete();
+        StepVerifier.create(r2dbcEntityTemplate
+                        .select(Order.class)
+                        .matching(query(where("id").is(3L)))
+                        .one())
+                        .expectNextCount(1).verifyComplete();
+
+        resetDataManager.resetAll();
     }
 }

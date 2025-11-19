@@ -1,85 +1,59 @@
 package com.maono.marketapplication.integration.controllers;
 
-import com.maono.marketapplication.PostgresqlContainerConfiguration;
+import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.ResetDataManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
-import java.math.BigDecimal;
-import java.util.List;
 
-import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.buildProductByIdWithCartItem;
-import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.mapToProductDto;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-@AutoConfigureMockMvc
-@Import(PostgresqlContainerConfiguration.class)
+@AutoConfigureWebTestClient
+@Import(IntegrationTestConfiguration.class)
 public class CartControllerTest {
     @Autowired
-    protected MockMvc mockMvc;
+    protected WebTestClient webTestClient;
+    @Autowired
+    protected ResetDataManager resetDataManager;
 
     @Test
-    public void test_getCartItems() throws Exception {
-        mockMvc.perform(get("/cart/items"))
-                .andExpect(view().name("cart"))
-                .andExpect(model().attribute("items", List.of(
-                        mapToProductDto(buildProductByIdWithCartItem(1L, 3)),
-                        mapToProductDto(buildProductByIdWithCartItem(2L, 1)),
-                        mapToProductDto(buildProductByIdWithCartItem(5L, 2))
-                )))
-                .andExpect(model().attribute("total", BigDecimal.valueOf(32099.95)))
-                .andExpect(status().isOk());
+    public void test_getCartItems() {
+        webTestClient.get()
+                .uri("/cart/items")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html -> {
+                    assertTrue(html.contains("<h5 class=\"card-title\">Книга</h5>"));
+                    assertTrue(html.contains("<h5 class=\"card-title\">Портфель</h5>"));
+                    assertTrue(html.contains("<h5 class=\"card-title\">Ваза</h5>"));
+                    assertTrue(html.contains("<h2>Итого: 32099.95 руб.</h2>"));
+                });
     }
 
     @Test
-    @Transactional
-    public void test_changeProductCountInTheCart_PLUS() throws Exception {
-        mockMvc.perform(post("/cart/items")
-                .param("id", "1")
-                .param("action", "PLUS"))
-                .andExpect(view().name("cart"))
-                .andExpect(model().attribute("items", List.of(
-                        mapToProductDto(buildProductByIdWithCartItem(2L, 1)),
-                        mapToProductDto(buildProductByIdWithCartItem(5L, 2)),
-                        mapToProductDto(buildProductByIdWithCartItem(1L, 4))
-                )))
-                .andExpect(status().isOk());
-    }
+    public void test_changeProductCountInTheCart() {
+        webTestClient.post()
+                .uri("/cart/items?id=1&action=DELETE")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html -> {
+                    assertFalse(html.contains("<h5 class=\"card-title\">Книга</h5>"));
+                    assertTrue(html.contains("<h5 class=\"card-title\">Портфель</h5>"));
+                    assertTrue(html.contains("<h5 class=\"card-title\">Ваза</h5>"));
+                    assertTrue(html.contains("<h2>Итого: 29999.98 руб.</h2>"));
+                });
 
-    @Test
-    @Transactional
-    public void test_changeProductCountInTheCart_MINUS() throws Exception {
-        mockMvc.perform(post("/cart/items")
-                        .param("id", "2")
-                        .param("action", "MINUS"))
-                .andExpect(view().name("cart"))
-                .andExpect(model().attribute("items", List.of(
-                        mapToProductDto(buildProductByIdWithCartItem(1L, 3)),
-                        mapToProductDto(buildProductByIdWithCartItem(5L, 2))
-                )))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @Transactional
-    public void test_changeProductCountInTheCart_DELETE() throws Exception {
-        mockMvc.perform(post("/cart/items")
-                        .param("id", "5")
-                        .param("action", "DELETE"))
-                .andExpect(view().name("cart"))
-                .andExpect(model().attribute("items", List.of(
-                        mapToProductDto(buildProductByIdWithCartItem(1L, 3)),
-                        mapToProductDto(buildProductByIdWithCartItem(2L, 1))
-                )))
-                .andExpect(status().isOk());
+        resetDataManager.resetCartItems();
     }
 }

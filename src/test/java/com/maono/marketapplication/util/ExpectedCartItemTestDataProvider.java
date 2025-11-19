@@ -2,44 +2,54 @@ package com.maono.marketapplication.util;
 
 import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.Product;
-import org.springframework.data.util.Pair;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.productByIdTemplate;
+
 public class ExpectedCartItemTestDataProvider {
-    public static List<CartItem> buildCartItemsList(Pair<Long, Integer>... items) {
-        return Arrays.stream(items)
-                .map(item -> buildCartItemByProductId(item.getFirst(), item.getSecond())).toList();
+
+    public static class StagedCartItemTestDataBuilder {
+        private final CartItem cartItem;
+
+        private StagedCartItemTestDataBuilder(CartItem cartItem) {
+            this.cartItem = cartItem;
+        }
+
+        public StagedCartItemTestDataBuilder withProductByTemplate() {
+            Product product = productByIdTemplate(cartItem.getId()).get();
+            cartItem.setProduct(product);
+            product.setCartItem(cartItem);
+            return this;
+        }
+
+        public StagedCartItemTestDataBuilder withProduct(Product product) {
+            cartItem.setProduct(product);
+            product.setCartItem(cartItem);
+            return this;
+        }
+
+        public CartItem get() {
+            return cartItem;
+        }
     }
 
-    public static CartItem buildCartItemByProductId(Long productId, int count) {
-        Product product = ExpectedProductsTestDataProvider.buildProductById(productId);
-
-        CartItem cartItem = CartItem.builder()
-            .id(productId)
-            .product(product)
-            .count(count)
-            .build();
-        product.setCartItem(cartItem);
-        return cartItem;
-    }
-
-    public static CartItem buildCartItemByProduct(Product product, int count) {
-        CartItem cartItem = CartItem.builder()
-                .id(product.getId())
-                .product(product)
+    public static StagedCartItemTestDataBuilder cartItem(Long id, int count) {
+        CartItem c = CartItem.builder()
+                .id(id)
                 .count(count)
                 .build();
-        product.setCartItem(cartItem);
-        return cartItem;
+
+        return new StagedCartItemTestDataBuilder(c);
     }
 
-    public static CartItem buildCartItemWithManagedEntity(Product product, int count) {
-        return CartItem.builder()
-                .product(product)
-                .count(count)
-                .build();
+    public static List<CartItem> cartItemList(List<Integer> counts) {
+        List<CartItem> cartItemList = new ArrayList<>();
+        for (int i = 0; i < counts.size(); i++) {
+            CartItem c = cartItem(1L + i, counts.get(i)).withProductByTemplate().get();
+            cartItemList.add(c);
+        }
+        return cartItemList;
     }
-
 }
