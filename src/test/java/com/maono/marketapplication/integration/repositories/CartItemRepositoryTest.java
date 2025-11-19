@@ -1,48 +1,65 @@
 package com.maono.marketapplication.integration.repositories;
 
-import com.maono.marketapplication.PostgresqlContainerConfiguration;
+import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.CartItem;
-import com.maono.marketapplication.models.Product;
 import com.maono.marketapplication.repositories.CartItemRepository;
-import com.maono.marketapplication.repositories.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.data.r2dbc.DataR2dbcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.util.Pair;
-import org.springframework.transaction.annotation.Transactional;
+import reactor.test.StepVerifier;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.stream.Stream;
 
-import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.buildCartItemByProductId;
-import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.buildCartItemWithManagedEntity;
-import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.buildCartItemsList;
+import static com.maono.marketapplication.util.ExpectedCartItemTestDataProvider.cartItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-@DataJpaTest
-@Import(PostgresqlContainerConfiguration.class)
+@DataR2dbcTest
+@Import(IntegrationTestConfiguration.class)
 class CartItemRepositoryTest {
     @Autowired
     protected CartItemRepository cartItemRepository;
     @Autowired
-    protected ProductRepository productRepository;
+    protected ResetDataManager resetDataManager;
+
+    @Test
+    public void test_findAll() {
+        StepVerifier.create(cartItemRepository.findAll())
+                .assertNext(cartItem -> {
+                    assertEquals(1L, cartItem.getId());
+                    assertEquals(3, cartItem.getCount());
+                })
+                .assertNext(cartItem -> {
+                    assertEquals(2L, cartItem.getId());
+                    assertEquals(1, cartItem.getCount());
+                })
+                .assertNext(cartItem -> {
+                    assertEquals(5L, cartItem.getId());
+                    assertEquals(2, cartItem.getCount());
+                })
+                .verifyComplete();
+    }
 
     @MethodSource("arguments_test_findById")
     @ParameterizedTest
     public void test_findById(long id, int count) {
-        Optional<CartItem> expected = count != -1 ?
-                Optional.ofNullable(buildCartItemByProductId(id, count)) :
-                Optional.empty();
-
-        assertEquals(expected, cartItemRepository.findById(id));
+        if (count > 0) {
+            StepVerifier.create(cartItemRepository.findById(id))
+                    .assertNext(cartItem -> {
+                        assertEquals(id, cartItem.getId());
+                        assertEquals(count, cartItem.getCount());
+                    })
+                    .verifyComplete();
+        } else {
+            StepVerifier.create(cartItemRepository.findById(id))
+                    .expectNextCount(0)
+                    .verifyComplete();
+        }
     }
 
     public static Stream<Arguments> arguments_test_findById() {
@@ -57,46 +74,74 @@ class CartItemRepositoryTest {
     }
 
     @Test
-    public void test_findAll() {
-        List<CartItem> expected = buildCartItemsList(Pair.of(1L, 3), Pair.of(2L, 1), Pair.of(5L, 2));
-        assertEquals(expected, cartItemRepository.findAll());
+    public void test_findAllById() {
+        List<Long> ids = List.of(1L, 5L);
+        StepVerifier.create(cartItemRepository.findAllById(ids))
+                .assertNext(cartItem -> {
+                    assertEquals(1L, cartItem.getId());
+                    assertEquals(3, cartItem.getCount());
+                })
+                .assertNext(cartItem -> {
+                    assertEquals(5L, cartItem.getId());
+                    assertEquals(2, cartItem.getCount());
+                })
+                .verifyComplete();
     }
 
     @Test
-    @Transactional
-    public void test_save() {
-        CartItem cartItem = buildCartItemWithManagedEntity(findProductById(3L), 2);
-        CartItem expected = buildCartItemByProductId(3L, 2);
-        assertEquals(Optional.empty(), cartItemRepository.findById(3L));
-        CartItem saved = cartItemRepository.save(cartItem);
-        assertEquals(3L, saved.getId());
-        assertEquals(expected, saved);
-    }
-
-    @Test
-    @Transactional
-    public void test_delete() {
-        assertNotEquals(Optional.empty(), cartItemRepository.findById(1L));
-        CartItem cartItem = cartItemRepository.findById(1L).get();
-        cartItem.getProduct().setCartItem(null);
-        cartItem.setProduct(null);
-        cartItemRepository.delete(cartItem);
-        assertEquals(Optional.empty(), cartItemRepository.findById(1L));
-    }
-
-    @Test
-    @Transactional
     public void test_deleteAll() {
-        assertNotEquals(Collections.emptyList(), cartItemRepository.findAll());
-        cartItemRepository.findAll().stream().forEach(item -> {
-            item.getProduct().setCartItem(null);
-            item.setProduct(null);
-        });
-        cartItemRepository.deleteAll();
-        assertEquals(Collections.emptyList(), cartItemRepository.findAll());
+        StepVerifier.create(cartItemRepository.findAll())
+                .expectNextCount(3)
+                .verifyComplete();
+
+        StepVerifier.create(cartItemRepository.deleteAll())
+                .expectNextCount(0)
+                .verifyComplete();
+
+        resetDataManager.resetCartItems();
     }
 
-    protected Product findProductById(long id) {
-        return productRepository.findById(id).orElseThrow(NoSuchElementException::new);
+    @Test
+    public void test_delete() {
+        CartItem cartItem = cartItem(5L, 2).get();
+
+        StepVerifier.create(cartItemRepository.findById(5L))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        StepVerifier.create(cartItemRepository.delete(cartItem))
+                .expectNextCount(0)
+                .verifyComplete();
+
+        StepVerifier.create(cartItemRepository.findById(5L))
+                .expectNextCount(0)
+                .verifyComplete();
+
+        resetDataManager.resetCartItems();
     }
+
+    @Test
+    public void test_save() {
+        CartItem cartItemToSave = cartItem(3L ,10).get();
+        cartItemToSave.setNew(true);
+
+
+        StepVerifier.create(cartItemRepository.findById(3L))
+                .expectNextCount(0)
+                .verifyComplete();
+
+        StepVerifier.create(cartItemRepository.save(cartItemToSave))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        StepVerifier.create(cartItemRepository.findById(3L))
+                .assertNext(cartItem -> {
+                    assertEquals(3L, cartItem.getId());
+                    assertEquals(10, cartItem.getCount());
+                })
+                .verifyComplete();
+
+        resetDataManager.resetCartItems();
+    }
+
 }
