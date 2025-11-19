@@ -1,53 +1,52 @@
 package com.maono.marketapplication.models;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-@Entity
-@Table(name = "cart_items")
-@Getter @Setter
-@ToString(exclude = "product")
-@EqualsAndHashCode
-@NoArgsConstructor
+@Table("cart_items")
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class CartItem {
+@Getter @Setter
+@EqualsAndHashCode(exclude = "isNew")
+public class CartItem implements Persistable<Long> {
     @Id
-    @Column(name = "product_id")
+    @Column("product_id")
     private Long id;
 
-    @OneToOne
-    @MapsId
-    @JoinColumn(name = "product_id", nullable = false)
+    @Transient
     private Product product;
 
-    @Column(name = "count", nullable = false)
+    @Column("count")
     private int count;
 
-    public CartItem(Product product, int count) {
-        this.product = product;
+    @Transient
+    private boolean isNew;
+
+    public CartItem(Long id, int count) {
+        this.id = id;
         this.count = count;
     }
 
-    public void incrementCount() {
-        count++;
+    public CartItem(Product product, int count, boolean isNew) {
+        this.id = product.getId();
+        this.product = product;
+        this.count = count;
+        this.isNew = isNew;
     }
 
-    public void decrementCount() {
-        if (count > 0) {
-            count--;
-        }
+    @Override
+    public boolean isNew() {
+        return isNew;
     }
+
 }
