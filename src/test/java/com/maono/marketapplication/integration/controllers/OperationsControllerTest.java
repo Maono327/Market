@@ -1,41 +1,52 @@
 package com.maono.marketapplication.integration.controllers;
 
-import com.maono.marketapplication.PostgresqlContainerConfiguration;
-import com.maono.marketapplication.services.OrderService;
+import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.ResetDataManager;
+import com.maono.marketapplication.models.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.util.Pair;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.NoSuchElementException;
-
-import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDataProvider.buildOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.test.StepVerifier;
+import static org.springframework.data.relational.core.query.Criteria.where;
+import static org.springframework.data.relational.core.query.Query.query;
 
 @SpringBootTest
-@AutoConfigureMockMvc
-@Import(PostgresqlContainerConfiguration.class)
+@AutoConfigureWebTestClient
+@Import(IntegrationTestConfiguration.class)
 public class OperationsControllerTest {
     @Autowired
-    protected MockMvc mockMvc;
+    protected WebTestClient webTestClient;
     @Autowired
-    protected OrderService orderService;
+    protected R2dbcEntityTemplate r2dbcEntityTemplate;
+    @Autowired
+    protected ResetDataManager resetDataManager;
 
     @Test
-    @Transactional
-    public void test_createOrder() throws Exception {
-        assertThrows(NoSuchElementException.class, () -> orderService.findById(3L));
-        mockMvc.perform(post("/buy"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/orders/3?newOrder=true"));
-        assertEquals(buildOrder(3L, Pair.of(1L, 3), Pair.of(2L, 1), Pair.of(5L, 2)), orderService.findById(3L));
+    public void test_createOrder() {
+        StepVerifier.create(r2dbcEntityTemplate
+                .select(Order.class)
+                .matching(query(where("id").is(3L)))
+                .one())
+                .expectNextCount(0)
+                .verifyComplete();
+
+        webTestClient.post()
+                .uri("/buy")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().valueEquals("Location", "/orders/3?newOrder=true");
+
+        StepVerifier.create(r2dbcEntityTemplate
+                        .select(Order.class)
+                        .matching(query(where("id").is(3L)))
+                        .one())
+                .expectNextCount(1)
+                .verifyComplete();
+
+        resetDataManager.resetAll();
     }
 }

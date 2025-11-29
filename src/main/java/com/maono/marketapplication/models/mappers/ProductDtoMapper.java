@@ -1,7 +1,7 @@
 package com.maono.marketapplication.models.mappers;
 
 import com.maono.marketapplication.models.Product;
-import com.maono.marketapplication.models.dto.ProductDto;
+import com.maono.marketapplication.models.dto.responses.ProductDto;
 
 public class ProductDtoMapper {
     public static ProductDto mapProductToDto(Product product) {

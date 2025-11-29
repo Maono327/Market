@@ -14,5 +14,4 @@ public class PostgresqlContainerConfiguration {
     PostgreSQLContainer<?> postgresContainer() {
         return new PostgreSQLContainer<>(DockerImageName.parse("postgres:15"));
     }
-
 }

@@ -2,8 +2,8 @@ package com.maono.marketapplication.models.mappers;
 
 import com.maono.marketapplication.models.Order;
 import com.maono.marketapplication.models.OrderItem;
-import com.maono.marketapplication.models.dto.OrderDto;
-import com.maono.marketapplication.models.dto.OrderItemDto;
+import com.maono.marketapplication.models.dto.responses.OrderDto;
+import com.maono.marketapplication.models.dto.responses.OrderItemDto;
 
 public class OrderDtoMapper {
     public static OrderDto mapToOrderDto(Order order) {

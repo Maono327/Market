@@ -1,11 +1,11 @@
 package com.maono.marketapplication.services;
 
 import com.maono.marketapplication.models.Order;
-
-import java.util.List;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface OrderService {
-    List<Order> findAll();
-    Order findById(Long id);
-    Order buy();
+    Flux<Order> findAllWithRelations();
+    Mono<Order> findByIdWithRelations(Long id);
+    Mono<Order> buy();
 }

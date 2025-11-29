@@ -1,14 +1,5 @@
 package com.maono.marketapplication.models;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -16,26 +7,28 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-@Entity
-@Table(name = "orders")
-@Getter @Setter
-@ToString(exclude = "items")
-@EqualsAndHashCode
-@Builder
-@NoArgsConstructor
+@Table("orders")
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Getter @Setter
+@EqualsAndHashCode
+@ToString
 public class Order {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "total_sum", nullable = false, precision = 19, scale = 2)
+    @Column("total_sum")
     private BigDecimal totalSum;
 
-    @OneToMany(mappedBy = "order", fetch = FetchType.EAGER, cascade = CascadeType.PERSIST)
+    @Transient
     private List<OrderItem> items;
 }

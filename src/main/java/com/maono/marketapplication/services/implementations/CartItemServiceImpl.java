@@ -3,11 +3,14 @@ package com.maono.marketapplication.services.implementations;
 import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.Product;
 import com.maono.marketapplication.repositories.CartItemRepository;
+import com.maono.marketapplication.repositories.ProductRepository;
 import com.maono.marketapplication.services.CartItemService;
-import com.maono.marketapplication.services.ProductService;
+import com.maono.marketapplication.services.util.ProductActionStrategy;
 import com.maono.marketapplication.util.ProductActionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,56 +20,38 @@ import java.util.List;
 public class CartItemServiceImpl implements CartItemService {
 
     private final CartItemRepository cartItemRepository;
-    private final ProductService productService;
+    private final ProductActionStrategy productActionStrategy;
+    private final ProductRepository productRepository;
 
     @Override
-    public void changeProductCountInTheCart(Long productId, ProductActionType actionType) {
-        CartItem cartItem = cartItemRepository.findById(productId).orElse(null);
-        switch (actionType) {
-            case PLUS -> {
-                if (cartItem == null) {
-                    Product product = productService.findProductById(productId);
-                    cartItem = new CartItem(product, 1);
-                    product.setCartItem(cartItem);
-                } else {
-                    cartItem.incrementCount();
-                }
-                cartItemRepository.save(cartItem);
-            }
-            case MINUS -> {
-                if (cartItem != null) {
-                    cartItem.decrementCount();
-                    if (cartItem.getCount() == 0) {
-                        cartItem.getProduct().setCartItem(null);
-                        cartItem.setProduct(null);
-                        cartItemRepository.delete(cartItem);
-                    } else {
-                        cartItemRepository.save(cartItem);
-                    }
-                }
-            }
-            case DELETE -> {
-                if (cartItem != null) {
-                    cartItem.getProduct().setCartItem(null);
-                    cartItem.setProduct(null);
-                    cartItemRepository.delete(cartItem);
-                }
-            }
-        }
+    public Mono<Void> changeProductCountInTheCart(Long productId, ProductActionType actionType) {
+        return productActionStrategy.execute(actionType, productId);
     }
 
     @Override
-    public List<CartItem> findAll() {
-        return cartItemRepository.findAll();
+    public Flux<CartItem> findAllWithRelations() {
+        return cartItemRepository.findAll()
+                .collectList()
+                .flatMapMany(cartItems -> {
+                    List<Long> productIds = cartItems.stream()
+                            .map(CartItem::getId)
+                            .toList();
+                    return productRepository.findAllById(productIds)
+                            .collectMap(Product::getId)
+                            .flatMapMany(productMap ->
+                                    Flux.fromIterable(cartItems)
+                                    .map(item -> {
+                                        Product product = productMap.get(item.getId());
+                                        product.setCartItem(item);
+                                        item.setProduct(product);
+                                        return item;
+                                    }));
+                });
     }
 
     @Override
-    public void removeAll() {
-        cartItemRepository.findAll().forEach(cartItem -> {
-            cartItem.getProduct().setCartItem(null);
-            cartItem.setProduct(null);
-        });
-        cartItemRepository.deleteAll();
+    public Mono<Void> removeAll() {
+        return cartItemRepository.deleteAll();
     }
 
     @Override
