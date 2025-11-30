@@ -1,11 +1,11 @@
 package com.maono.marketapplication.controllers;
 
 import com.maono.marketapplication.models.Product;
-import com.maono.marketapplication.models.dto.responses.ProductDto;
 import com.maono.marketapplication.models.dto.requests.ProductPageCartCountChangeRequest;
 import com.maono.marketapplication.models.dto.requests.ProductsPageCartCountChangeRequest;
 import com.maono.marketapplication.models.mappers.PageDtoMapper;
 import com.maono.marketapplication.models.mappers.ProductDtoMapper;
+import com.maono.marketapplication.models.mappers.ProductDtoRowMapper;
 import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.ProductService;
 import com.maono.marketapplication.util.ProductSortType;
@@ -22,7 +22,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -44,23 +43,24 @@ public class ProductController {
                     return Flux.fromIterable(products)
                             .collectList()
                             .map(productsWithCartItems -> {
-                                List<List<ProductDto>> items = new ArrayList<>();
-                                List<ProductDto> row = new ArrayList<>();
-                                for (int i = 0;
-                                     i < (productsWithCartItems.size() + (productsWithCartItems.size() % 3 == 0 ?
-                                             0 : 3 - (productsWithCartItems.size() % 3)));
-                                     i++) {
-                                    if (i < productsWithCartItems.size()) {
-                                        Product product = productsWithCartItems.get(i);
-                                        row.add(ProductDtoMapper.mapProductToDto(product));
-                                    } else {
-                                        row.add(ProductDto.builder().id(-1).build());
-                                    }
-                                    if (row.size() == 3) {
-                                        items.add(row);
-                                        row = new ArrayList<>();
-                                    }
-                                }
+//                                List<List<ProductDto>> items = new ArrayList<>();
+//                                List<ProductDto> row = new ArrayList<>();
+//                                for (int i = 0;
+//                                     i < (productsWithCartItems.size() + (productsWithCartItems.size() % 3 == 0 ?
+//                                             0 : 3 - (productsWithCartItems.size() % 3)));
+//                                     i++) {
+//                                    if (i < productsWithCartItems.size()) {
+//                                        Product product = productsWithCartItems.get(i);
+//                                        row.add(ProductDtoMapper.mapProductToDto(product));
+//                                    } else {
+//                                        row.add(ProductDto.builder().id(-1).build());
+//                                    }
+//                                    if (row.size() == 3) {
+//                                        items.add(row);
+//                                        row = new ArrayList<>();
+//                                    }
+//                                }
+                                var items = ProductDtoRowMapper.mapProductDtoRow(productsWithCartItems);
 
                                 return Rendering.view("product_items")
                                         .modelAttribute("items", items)
