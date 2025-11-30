@@ -1,4 +1,4 @@
-package com.maono.marketapplication.repositories;
+package com.maono.marketapplication.repositories.reactive;
 
 import com.maono.marketapplication.models.Product;
 import org.springframework.data.r2dbc.repository.Query;
@@ -10,11 +10,7 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface ProductRepository extends R2dbcRepository<Product, Long> {
     @Query("""
-            SELECT p.id, 
-                   p.title, 
-                   p.description, 
-                   p.image_name,
-                   p.price
+            SELECT p.id
                    FROM products p
                    ORDER BY
                        CASE WHEN :sortBy = 'title' THEN p.title END,
@@ -28,11 +24,7 @@ public interface ProductRepository extends R2dbcRepository<Product, Long> {
     Mono<Integer> totalCount();
 
     @Query("""
-            SELECT p.id, 
-                   p.title, 
-                   p.description, 
-                   p.image_name,
-                   p.price
+            SELECT p.id
                    FROM products p
                    WHERE title ILIKE '%' || :search || '%'
                    ORDER BY

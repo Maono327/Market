@@ -1,4 +1,4 @@
-package com.maono.marketapplication.repositories;
+package com.maono.marketapplication.repositories.reactive;
 
 import com.maono.marketapplication.models.CartItem;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;

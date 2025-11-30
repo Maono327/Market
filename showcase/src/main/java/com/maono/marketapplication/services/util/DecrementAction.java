@@ -1,6 +1,6 @@
 package com.maono.marketapplication.services.util;
 
-import com.maono.marketapplication.repositories.CartItemRepository;
+import com.maono.marketapplication.repositories.reactive.CartItemRepository;
 import com.maono.marketapplication.util.ProductActionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

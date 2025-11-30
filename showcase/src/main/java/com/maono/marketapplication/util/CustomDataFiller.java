@@ -1,7 +1,7 @@
 package com.maono.marketapplication.util;
 
 import com.maono.marketapplication.models.Product;
-import com.maono.marketapplication.repositories.ProductRepository;
+import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

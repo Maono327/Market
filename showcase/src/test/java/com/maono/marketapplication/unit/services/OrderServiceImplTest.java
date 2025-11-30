@@ -1,8 +1,8 @@
 package com.maono.marketapplication.unit.services;
 
 import com.maono.marketapplication.models.Order;
-import com.maono.marketapplication.repositories.OrderItemRepository;
-import com.maono.marketapplication.repositories.OrderRepository;
+import com.maono.marketapplication.repositories.reactive.OrderItemRepository;
+import com.maono.marketapplication.repositories.reactive.OrderRepository;
 import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.implementations.OrderServiceImpl;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,4 @@
-package com.maono.marketapplication.repositories;
+package com.maono.marketapplication.repositories.reactive;
 
 import com.maono.marketapplication.models.Order;
 import org.springframework.stereotype.Repository;

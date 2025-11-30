@@ -2,7 +2,7 @@ package com.maono.marketapplication.integration.repositories;
 
 import com.maono.marketapplication.integration.IntegrationTestConfiguration;
 import com.maono.marketapplication.models.Product;
-import com.maono.marketapplication.repositories.ProductRepository;
+import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

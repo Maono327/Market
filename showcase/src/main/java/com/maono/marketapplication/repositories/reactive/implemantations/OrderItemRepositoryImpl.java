@@ -1,7 +1,7 @@
-package com.maono.marketapplication.repositories.implemantations;
+package com.maono.marketapplication.repositories.reactive.implemantations;
 
 import com.maono.marketapplication.models.OrderItem;
-import com.maono.marketapplication.repositories.OrderItemRepository;
+import com.maono.marketapplication.repositories.reactive.OrderItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;

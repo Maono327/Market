@@ -1,8 +1,8 @@
 package com.maono.marketapplication.unit.services;
 
 import com.maono.marketapplication.models.CartItem;
-import com.maono.marketapplication.repositories.CartItemRepository;
-import com.maono.marketapplication.repositories.ProductRepository;
+import com.maono.marketapplication.repositories.reactive.CartItemRepository;
+import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import com.maono.marketapplication.services.implementations.CartItemServiceImpl;
 import com.maono.marketapplication.services.util.ProductActionStrategy;
 import com.maono.marketapplication.util.ExpectedCartItemTestDataProvider;

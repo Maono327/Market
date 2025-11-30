@@ -1,7 +1,7 @@
 package com.maono.marketapplication.unit.services.util;
 
 import com.maono.marketapplication.models.CartItem;
-import com.maono.marketapplication.repositories.CartItemRepository;
+import com.maono.marketapplication.repositories.reactive.CartItemRepository;
 import com.maono.marketapplication.services.util.DeleteAction;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,8 +1,8 @@
 package com.maono.marketapplication.unit.services.util;
 
 import com.maono.marketapplication.models.CartItem;
-import com.maono.marketapplication.repositories.CartItemRepository;
-import com.maono.marketapplication.repositories.ProductRepository;
+import com.maono.marketapplication.repositories.reactive.CartItemRepository;
+import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import com.maono.marketapplication.services.util.IncrementAction;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

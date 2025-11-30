@@ -3,7 +3,7 @@ package com.maono.marketapplication.integration.repositories;
 import com.maono.marketapplication.integration.IntegrationTestConfiguration;
 import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.CartItem;
-import com.maono.marketapplication.repositories.CartItemRepository;
+import com.maono.marketapplication.repositories.reactive.CartItemRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

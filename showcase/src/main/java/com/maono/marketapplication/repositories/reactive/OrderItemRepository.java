@@ -1,4 +1,4 @@
-package com.maono.marketapplication.repositories;
+package com.maono.marketapplication.repositories.reactive;
 
 import com.maono.marketapplication.models.OrderItem;
 import reactor.core.publisher.Mono;

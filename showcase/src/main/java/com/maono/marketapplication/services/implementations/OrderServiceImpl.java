@@ -2,8 +2,8 @@ package com.maono.marketapplication.services.implementations;
 
 import com.maono.marketapplication.models.Order;
 import com.maono.marketapplication.models.OrderItem;
-import com.maono.marketapplication.repositories.OrderItemRepository;
-import com.maono.marketapplication.repositories.OrderRepository;
+import com.maono.marketapplication.repositories.reactive.OrderItemRepository;
+import com.maono.marketapplication.repositories.reactive.OrderRepository;
 import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.OrderService;
 import lombok.RequiredArgsConstructor;

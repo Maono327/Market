@@ -1,9 +1,9 @@
-package com.maono.marketapplication.repositories.implemantations;
+package com.maono.marketapplication.repositories.reactive.implemantations;
 
 import com.maono.marketapplication.models.Order;
 import com.maono.marketapplication.models.OrderItem;
 import com.maono.marketapplication.models.Product;
-import com.maono.marketapplication.repositories.OrderRepository;
+import com.maono.marketapplication.repositories.reactive.OrderRepository;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

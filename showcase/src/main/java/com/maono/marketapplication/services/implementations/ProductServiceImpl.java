@@ -2,10 +2,10 @@ package com.maono.marketapplication.services.implementations;
 
 import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.Product;
-import com.maono.marketapplication.repositories.CartItemRepository;
+import com.maono.marketapplication.repositories.reactive.CartItemRepository;
 import com.maono.marketapplication.repositories.util.Page;
 import com.maono.marketapplication.util.ProductSortType;
-import com.maono.marketapplication.repositories.ProductRepository;
+import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import com.maono.marketapplication.services.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
