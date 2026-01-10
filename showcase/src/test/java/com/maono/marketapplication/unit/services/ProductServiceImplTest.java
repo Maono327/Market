@@ -10,6 +10,7 @@ import com.maono.marketapplication.repositories.redis.RedisProductRepository;
 import com.maono.marketapplication.repositories.redis.util.PageCache;
 import com.maono.marketapplication.repositories.util.Page;
 import com.maono.marketapplication.services.implementations.ProductServiceImpl;
+import com.maono.marketapplication.util.CacheCleaner;
 import com.maono.marketapplication.util.ProductSortType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,8 @@ public class ProductServiceImplTest {
     protected RedisCartItemRepository redisCartItemRepository;
     @MockitoBean
     protected RedisPageRepository redisPageRepository;
+    @MockitoBean
+    protected CacheCleaner cacheCleaner;
 
     @Test
     public void test_findByPage_pageCached_cartItemsCached() {
