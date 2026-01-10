@@ -1,6 +1,7 @@
 package com.maono.marketapplication.integration.controllers;
 
 import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.RedisDataManager;
 import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.Order;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,9 @@ public class OperationsControllerTest {
     @Autowired
     protected ResetDataManager resetDataManager;
 
+    @Autowired
+    protected RedisDataManager redisDataManager;
+
     @Test
     public void test_createOrder() {
         StepVerifier.create(r2dbcEntityTemplate
@@ -48,5 +52,6 @@ public class OperationsControllerTest {
                 .verifyComplete();
 
         resetDataManager.resetAll();
+        redisDataManager.clear();
     }
 }

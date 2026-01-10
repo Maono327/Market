@@ -1,6 +1,7 @@
 package com.maono.marketapplication.integration.controllers;
 
 import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.RedisDataManager;
 import com.maono.marketapplication.integration.ResetDataManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,8 @@ public class CartControllerTest {
     protected WebTestClient webTestClient;
     @Autowired
     protected ResetDataManager resetDataManager;
+    @Autowired
+    protected RedisDataManager redisDataManager;
 
     @Test
     public void test_getCartItems() {
@@ -55,5 +58,6 @@ public class CartControllerTest {
                 });
 
         resetDataManager.resetCartItems();
+        redisDataManager.clear();
     }
 }

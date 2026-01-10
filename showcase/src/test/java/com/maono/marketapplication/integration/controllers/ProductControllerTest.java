@@ -1,6 +1,7 @@
 package com.maono.marketapplication.integration.controllers;
 
 import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.RedisDataManager;
 import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.CartItem;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,8 @@ public class ProductControllerTest {
     protected ResetDataManager resetDataManager;
     @Autowired
     protected R2dbcEntityTemplate r2dbcEntityTemplate;
+    @Autowired
+    protected RedisDataManager redisDataManager;
 
     @Test
     public void test_getProducts_emptySearch() {
@@ -150,6 +153,7 @@ public class ProductControllerTest {
                 .verifyComplete();
 
         resetDataManager.resetCartItems();
+        redisDataManager.clear();
     }
 
     @Test
@@ -175,6 +179,7 @@ public class ProductControllerTest {
                 .verifyComplete();
 
         resetDataManager.resetCartItems();
+        redisDataManager.clear();
     }
 
     @Test
@@ -200,6 +205,7 @@ public class ProductControllerTest {
                 .verifyComplete();
 
         resetDataManager.resetCartItems();
+        redisDataManager.clear();
     }
 
     @Test
@@ -250,6 +256,7 @@ public class ProductControllerTest {
                 .verifyComplete();
 
         resetDataManager.resetCartItems();
+        redisDataManager.clear();
     }
 
     @Test
@@ -284,6 +291,7 @@ public class ProductControllerTest {
                 .verifyComplete();
 
         resetDataManager.resetCartItems();
+        redisDataManager.clear();
     }
 }
 
