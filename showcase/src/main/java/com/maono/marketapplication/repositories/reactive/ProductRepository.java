@@ -10,7 +10,11 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface ProductRepository extends R2dbcRepository<Product, Long> {
     @Query("""
-            SELECT p.id
+            SELECT p.id, 
+                   p.title, 
+                   p.description, 
+                   p.image_name,
+                   p.price
                    FROM products p
                    ORDER BY
                        CASE WHEN :sortBy = 'title' THEN p.title END,
@@ -20,11 +24,12 @@ public interface ProductRepository extends R2dbcRepository<Product, Long> {
            """)
     Flux<Product> findProductsByPage(int pageSize, int offset, String sortBy);
 
-    @Query("SELECT count(*) FROM products")
-    Mono<Integer> totalCount();
-
     @Query("""
-            SELECT p.id
+            SELECT p.id, 
+                   p.title, 
+                   p.description, 
+                   p.image_name,
+                   p.price
                    FROM products p
                    WHERE title ILIKE '%' || :search || '%'
                    ORDER BY
@@ -34,6 +39,12 @@ public interface ProductRepository extends R2dbcRepository<Product, Long> {
                    LIMIT :pageSize OFFSET :offset
            """)
     Flux<Product> findProductsByPageAndTitle(String search, int pageSize, int offset, String sortBy);
+
+    @Query("SELECT count(*) FROM products")
+    Mono<Integer> totalCount();
+
+    @Query("SELECT count(*) FROM products WHERE title ILIKE '%' || :search || '%'")
+    Mono<Integer> totalCountBySearch(String search);
 
     Mono<Product> findProductByTitleLike(String title);
 }
