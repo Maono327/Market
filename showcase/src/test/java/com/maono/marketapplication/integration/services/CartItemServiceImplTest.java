@@ -70,7 +70,17 @@ public class CartItemServiceImplTest {
 
     @Test
     public void test_findAllWithRelations_productsNotCached() {
-        // TODO: добавить проверку на кеширование продуктов
+        StepVerifier.create(redisDataManager.getCartItemCache(1L))
+                .expectNextCount(0)
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(2L))
+                .expectNextCount(0)
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(5L))
+                .expectNextCount(0)
+                .verifyComplete();
 
         StepVerifier.create(cartItemService.findAllWithRelations())
                 .assertNext(cartItem -> {
@@ -85,6 +95,18 @@ public class CartItemServiceImplTest {
                     CartItem expected = cartItem(5L, 2).withProduct(vaseProduct().get()).get();
                     assertEquals(expected, cartItem);
                 })
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(1L))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(2L))
+                .expectNextCount(1)
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(5L))
+                .expectNextCount(1)
                 .verifyComplete();
     }
 
