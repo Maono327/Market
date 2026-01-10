@@ -12,4 +12,18 @@
         <artifactId>MarketApplication</artifactId>
         <version>1.0.2</version>
     </parent>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.redis.testcontainers</groupId>
+            <artifactId>testcontainers-redis</artifactId>
+            <version>1.6.4</version>
+        </dependency>
+    </dependencies>
+
 </project>
