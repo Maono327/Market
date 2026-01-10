@@ -28,8 +28,7 @@ public class RedisCartItemRepositoryImpl implements RedisCartItemRepository {
                 .set(key + object.getId(),
                         new CartItemCache(object.getId(), object.getCount()),
                         Duration.ofSeconds(TTL))
-                .thenReturn(object)
-                .doOnNext(i -> System.out.println("Закешировано: " + i));
+                .thenReturn(object);
     }
 
     @Override

@@ -168,11 +168,9 @@ public class ProductServiceImpl implements ProductService {
                         return Mono.just(products);
                     } else {
                         return Flux.fromIterable(missedCachedCartItemsIds)
-                                .doOnNext(System.out::println)
                                 .flatMap(id -> cartItemRepository.findById(id)
-                                        .switchIfEmpty(Mono.just(new CartItem(id, 0)).doOnNext(i -> System.out.print("Создание пустого карт айтема: " + i))))
-                                .doOnNext(i -> System.out.println("Кеширование " + i))
-                                .flatMap(cartItem -> redisCartItemRepository.cacheObject(cartItem).doOnNext(c3 -> System.out.println("зак123ешировано " + c3)))
+                                        .switchIfEmpty(Mono.just(new CartItem(id, 0))))
+                                .flatMap(redisCartItemRepository::cacheObject)
                                 .collectList()
                                 .map(cartItems -> {
                                     cartItems.addAll(cachedCartItems);
