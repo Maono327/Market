@@ -1,6 +1,7 @@
 package com.maono.marketapplication.integration.repositories.reactive;
 
 import com.maono.marketapplication.integration.IntegrationTestPostgresConfiguration;
+import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.Product;
 import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.data.r2dbc.DataR2dbcTest;
 import org.springframework.context.annotation.Import;
 import reactor.test.StepVerifier;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -31,6 +33,8 @@ class ProductRepositoryTest {
 
     @Autowired
     protected ProductRepository productRepository;
+    @Autowired
+    protected ResetDataManager resetDataManager;
 
     @ParameterizedTest
     @MethodSource("arguments_test_findProductsByPage")
@@ -178,6 +182,60 @@ class ProductRepositoryTest {
         StepVerifier.create(productRepository.totalCountBySearch("кн"))
                 .assertNext(count -> assertEquals(1, count))
                 .verifyComplete();
+    }
+
+    @Test
+    public void test_saveAll() {
+        List<Product> productList = List.of(
+                Product.builder()
+                        .title("Test 1")
+                        .description("Description 1")
+                        .imageName("test1.png")
+                        .price(BigDecimal.valueOf(100.00))
+                        .build(),
+                Product.builder()
+                        .title("Test 2")
+                        .description("Description 2")
+                        .imageName("test2.png")
+                        .price(BigDecimal.valueOf(200.00))
+                        .build()
+        );
+
+        StepVerifier.create(productRepository.findById(6L))
+                .expectNextCount(0)
+                .verifyComplete();
+        StepVerifier.create(productRepository.findById(7L))
+                .expectNextCount(0)
+                .verifyComplete();
+
+        StepVerifier.create(productRepository.saveAll(productList))
+                .expectNextCount(2)
+                .verifyComplete();
+
+        Product expected1 = Product.builder()
+                .id(6L)
+                .title("Test 1")
+                .description("Description 1")
+                .imageName("test1.png")
+                .price(new BigDecimal("100.00"))
+                .build();
+
+        Product expected2 = Product.builder()
+                .id(7L)
+                .title("Test 2")
+                .description("Description 2")
+                .imageName("test2.png")
+                .price(new BigDecimal("200.00"))
+                .build();
+
+        StepVerifier.create(productRepository.findById(6L))
+                .assertNext(product -> assertEquals(expected1, product))
+                .verifyComplete();
+        StepVerifier.create(productRepository.findById(7L))
+                .assertNext(product -> assertEquals(expected2, product))
+                .verifyComplete();
+
+        resetDataManager.resetAll();
     }
 
     protected static Product expectedProductById(Long id) {
