@@ -7,6 +7,7 @@ import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.ProductService;
 import com.maono.marketapplication.util.ProductActionType;
 import com.maono.marketapplication.util.ProductSortType;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -14,13 +15,17 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +35,8 @@ import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.
 import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.productByIdTemplate;
 import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.stubProduct;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -332,5 +339,82 @@ class ProductControllerTest {
                 Arguments.of(2L, "MINUS"),
                 Arguments.of(3L, "DELETE")
         );
+    }
+
+    @Test
+    public void test_importProducts_fileNotEmpty() {
+        String csv = """
+                title,description,imageName,price
+                Test 1,Desc 1,test1.png,100.00
+                Test 2,Desc 2,test2.png,200.00
+                """;
+
+        ByteArrayResource file = new ByteArrayResource(csv.getBytes(StandardCharsets.UTF_8)) {
+            @Override
+            public String getFilename() {
+                return "products.csv";
+            }
+        };
+
+        when(productService.importProducts(anyList()))
+                .thenReturn(Mono.empty());
+
+        MultipartBodyBuilder mbb = new MultipartBodyBuilder();
+        mbb.part("import", file)
+                .filename("products.csv")
+                .contentType(MediaType.TEXT_PLAIN);
+
+        webTestClient.post()
+                .uri("/import")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(mbb.build())
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().valueMatches("Location", "/items");
+
+        List<Product> expected = List.of(
+                Product.builder()
+                        .title("Test 1")
+                        .description("Desc 1")
+                        .imageName("test1.png")
+                        .price(new BigDecimal("100.00"))
+                        .build(),
+                Product.builder()
+                        .title("Test 2")
+                        .description("Desc 2")
+                        .imageName("test2.png")
+                        .price(new BigDecimal("200.00"))
+                        .build()
+        );
+
+        verify(productService).importProducts(eq(expected));
+        verifyNoMoreInteractions(productService);
+        verifyNoInteractions(cartItemService);
+    }
+
+    @Test
+    public void test_importProducts_fileEmpty() {
+        ByteArrayResource file = new ByteArrayResource(new byte[0]) {
+            @Override
+            public String getFilename() {
+                return "products.csv";
+            }
+        };
+
+        MultipartBodyBuilder mbb = new MultipartBodyBuilder();
+        mbb.part("import", file)
+                .filename("empty.csv")
+                .contentType(MediaType.TEXT_PLAIN);
+
+        webTestClient.post()
+                .uri("/import")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(mbb.build())
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().valueMatches("Location", "/items");
+
+
+        verifyNoInteractions(productService, cartItemService);
     }
 }

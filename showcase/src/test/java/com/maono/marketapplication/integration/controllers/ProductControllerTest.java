@@ -4,17 +4,24 @@ import com.maono.marketapplication.integration.IntegrationTestConfiguration;
 import com.maono.marketapplication.integration.RedisDataManager;
 import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.CartItem;
+import com.maono.marketapplication.models.Product;
+import com.maono.marketapplication.util.ExpectedProductsTestDataProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import reactor.test.StepVerifier;
 
+import java.nio.charset.StandardCharsets;
+
+import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.bookProduct;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -292,6 +299,41 @@ public class ProductControllerTest {
 
         resetDataManager.resetCartItems();
         redisDataManager.clear();
+    }
+
+    @Test
+    public void test_importProducts() {
+        Product book = bookProduct().get();
+
+        redisDataManager.cacheProduct(book);
+
+        String csv = """
+                title,description,imageName,price
+                Test 1,Desc 1,test1.png,100.00
+                Test 2,Desc 2,test2.png,200.00
+                """;
+
+        ByteArrayResource file = new ByteArrayResource(csv.getBytes(StandardCharsets.UTF_8)) {
+            @Override
+            public String getFilename() {
+                return "products.csv";
+            }
+        };
+
+        MultipartBodyBuilder mbb = new MultipartBodyBuilder();
+        mbb.part("import", file)
+                .filename("products.csv");
+
+        webTestClient.post()
+                .uri("/import")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(mbb.build())
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().valueMatches("Location", "/items");
+
+        StepVerifier.create(redisDataManager.getProductCache(1L)).expectNextCount(0).verifyComplete();
+        resetDataManager.resetAll();
     }
 }
 

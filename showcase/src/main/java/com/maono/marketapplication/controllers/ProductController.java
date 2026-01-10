@@ -1,8 +1,14 @@
 package com.maono.marketapplication.controllers;
 
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvParser;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.maono.marketapplication.models.Product;
+import com.maono.marketapplication.models.dto.ImportProduct;
 import com.maono.marketapplication.models.dto.requests.ProductPageCartCountChangeRequest;
 import com.maono.marketapplication.models.dto.requests.ProductsPageCartCountChangeRequest;
+import com.maono.marketapplication.models.mappers.ImportProductMapper;
 import com.maono.marketapplication.models.mappers.PageDtoMapper;
 import com.maono.marketapplication.models.mappers.ProductDtoMapper;
 import com.maono.marketapplication.models.mappers.ProductDtoRowMapper;
@@ -10,6 +16,8 @@ import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.ProductService;
 import com.maono.marketapplication.util.ProductSortType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -17,11 +25,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.reactive.result.view.Rendering;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.InputStream;
 import java.util.List;
 
 @Controller
@@ -84,5 +94,40 @@ public class ProductController {
                                 .map(product -> Rendering.view("product_item")
                                         .modelAttribute("item", ProductDtoMapper.mapProductToDto(product))
                                         .build()));
+    }
+
+    @PostMapping("/import")
+    public Mono<Rendering> importProducts(@RequestPart("import") FilePart productsToImport) {
+        CsvMapper csvMapper = CsvMapper.builder()
+                .enable(CsvParser.Feature.TRIM_SPACES)
+                .build();
+
+        CsvSchema csvSchema = CsvSchema.emptySchema().withHeader();
+
+        return DataBufferUtils.join(productsToImport.content())
+                .flatMap(dataBuffer -> {
+                    if (dataBuffer.readableByteCount() == 0) {
+                        DataBufferUtils.release(dataBuffer);
+                        return Mono.just(Rendering.redirectTo("/items").build());
+                    }
+
+                    return Mono.fromCallable(() -> {
+                                try (InputStream is = dataBuffer.asInputStream()) {
+                                    MappingIterator<ImportProduct> iterator = csvMapper
+                                            .readerFor(ImportProduct.class)
+                                            .with(csvSchema)
+                                            .readValues(is);
+
+                                    List<ImportProduct> importProducts = iterator.readAll();
+                                    return importProducts.stream()
+                                            .map(ImportProductMapper::map)
+                                            .toList();
+                                } finally {
+                                    DataBufferUtils.release(dataBuffer);
+                                }
+                            })
+                            .flatMap(productService::importProducts)
+                            .thenReturn(Rendering.redirectTo("/items").build());
+                });
     }
 }
