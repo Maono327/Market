@@ -1,9 +1,11 @@
 package com.maono.marketapplication.integration.services;
 
 import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.RedisDataManager;
 import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.Order;
+import com.maono.marketapplication.models.Product;
 import com.maono.marketapplication.services.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +34,8 @@ public class OrderServiceImplTest {
     protected R2dbcEntityTemplate r2dbcEntityTemplate;
     @Autowired
     protected ResetDataManager resetDataManager;
+    @Autowired
+    private RedisDataManager redisDataManager;
 
     @Test
     public void test_findAllWithRelations() {
@@ -81,7 +85,15 @@ public class OrderServiceImplTest {
     }
 
     @Test
-    public void test_buy() {
+    public void test_buy_productsCached() {
+        Product cachedBook = bookProduct().get();
+        Product cachedPolaroid = polaroidProduct().get();
+        Product cachedVase = vaseProduct().get();
+
+        redisDataManager.cacheProduct(cachedBook);
+        redisDataManager.cacheProduct(cachedPolaroid);
+        redisDataManager.cacheProduct(cachedVase);
+
         StepVerifier.create(r2dbcEntityTemplate.select(CartItem.class).all()).expectNextCount(3).verifyComplete();
         StepVerifier.create(r2dbcEntityTemplate
                 .select(Order.class)
@@ -102,6 +114,19 @@ public class OrderServiceImplTest {
                         .one())
                         .expectNextCount(1).verifyComplete();
 
+        StepVerifier.create(redisDataManager.getCartItemCache(1L))
+                        .assertNext(cartItemCache -> assertEquals(0, cartItemCache.count()))
+                        .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(2L))
+                .assertNext(cartItemCache -> assertEquals(0, cartItemCache.count()))
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(5L))
+                .assertNext(cartItemCache -> assertEquals(0, cartItemCache.count()))
+                .verifyComplete();
+
+        redisDataManager.clear();
         resetDataManager.resetAll();
     }
 }
