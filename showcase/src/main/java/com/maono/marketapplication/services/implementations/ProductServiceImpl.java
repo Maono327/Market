@@ -8,6 +8,7 @@ import com.maono.marketapplication.repositories.redis.RedisPageRepository;
 import com.maono.marketapplication.repositories.redis.RedisProductRepository;
 import com.maono.marketapplication.repositories.redis.util.PageCache;
 import com.maono.marketapplication.repositories.util.Page;
+import com.maono.marketapplication.util.CacheCleaner;
 import com.maono.marketapplication.util.ProductSortType;
 import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import com.maono.marketapplication.services.ProductService;
@@ -30,6 +31,7 @@ public class ProductServiceImpl implements ProductService {
     private final RedisProductRepository redisProductRepository;
     private final RedisCartItemRepository redisCartItemRepository;
     private final RedisPageRepository redisPageRepository;
+    private final CacheCleaner cacheCleaner;
 
     @Override
     public Mono<Page<Product>> findByPage(String search, ProductSortType sort, int pageSize, int pageNumber) {
@@ -179,5 +181,10 @@ public class ProductServiceImpl implements ProductService {
                                 });
                     }
                 });
+    }
+
+    @Override
+    public Mono<Void> importProducts(List<Product> productsToImport) {
+        return productRepository.saveAll(productsToImport).then(cacheCleaner.cleanCache());
     }
 }

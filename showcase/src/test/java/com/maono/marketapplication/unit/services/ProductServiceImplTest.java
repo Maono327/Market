@@ -29,11 +29,7 @@ import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(classes = {ProductServiceImpl.class})
 public class ProductServiceImplTest {
@@ -747,7 +743,7 @@ public class ProductServiceImplTest {
     }
 
     @Test
-    public void test_test_findProductByIdWithRelations_productNotCached() {
+    public void test_findProductByIdWithRelations_productNotCached() {
         Product product = productByIdTemplate(1L).get();
 
         when(redisProductRepository.getCachedObject(1L)).thenReturn(Mono.empty());
@@ -780,5 +776,22 @@ public class ProductServiceImplTest {
                 redisCartItemRepository
         );
         verifyNoInteractions(redisPageRepository);
+    }
+
+    @Test
+    public void test_importProducts() {
+        List<Product> imports = List.of(productByIdTemplate(1L).get(), productByIdTemplate(2L).get());
+
+        when(productRepository.saveAll(imports)).thenReturn(Flux.fromIterable(imports));
+        when(cacheCleaner.cleanCache()).thenReturn(Mono.empty());
+
+        StepVerifier.create(productService.importProducts(imports))
+                .expectNextCount(0)
+                .verifyComplete();
+
+        verify(productRepository).saveAll(imports);
+        verify(cacheCleaner).cleanCache();
+        verifyNoMoreInteractions(productRepository, cacheCleaner);
+        verifyNoInteractions(redisPageRepository, cartItemRepository, redisProductRepository, redisCartItemRepository);
     }
 }
