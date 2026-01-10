@@ -1,5 +1,6 @@
 package com.maono.marketapplication.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -35,6 +36,7 @@ public class Product {
     private String imageName;
 
     @Transient
+    @JsonIgnore
     private CartItem cartItem;
 
     @Column("price")
