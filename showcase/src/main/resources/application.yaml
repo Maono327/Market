@@ -13,3 +13,8 @@ spring:
     url: ${JDBC_DB_URL}
     user: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+
+  data:
+    redis:
+      host: ${REDIS_IP}
+      port: ${REDIS_PORT}
