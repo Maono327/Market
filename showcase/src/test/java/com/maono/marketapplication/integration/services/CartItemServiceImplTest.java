@@ -1,10 +1,12 @@
 package com.maono.marketapplication.integration.services;
 
 import com.maono.marketapplication.integration.IntegrationTestConfiguration;
+import com.maono.marketapplication.integration.RedisDataManager;
 import com.maono.marketapplication.integration.ResetDataManager;
 import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.util.ProductActionType;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,9 +31,20 @@ public class CartItemServiceImplTest {
     protected R2dbcEntityTemplate r2dbcEntityTemplate;
     @Autowired
     protected ResetDataManager resetDataManager;
+    @Autowired
+    protected RedisDataManager redisDataManager;
+
+    @AfterEach
+    public void cleanUp() {
+        redisDataManager.clear();
+        resetDataManager.resetCartItems();
+    }
 
     @Test
-    public void test_changeProductCountInTheCart() {
+    public void test_changeProductCountInTheCart_cartItemCached() {
+        CartItem cached = cartItem(1L, 3).get();
+        redisDataManager.cacheCartItem(cached);
+
         StepVerifier.create(r2dbcEntityTemplate
                 .select(CartItem.class)
                 .matching(query(where("product_id").is(1L)))
@@ -50,11 +63,15 @@ public class CartItemServiceImplTest {
                 .expectNextCount(0)
                 .verifyComplete();
 
-        resetDataManager.resetCartItems();
+        StepVerifier.create(redisDataManager.getCartItemCache(1L))
+                .assertNext(cartItemCache -> assertEquals(0, cartItemCache.count()))
+                .verifyComplete();
     }
 
     @Test
-    public void test_findAllWithRelations() {
+    public void test_findAllWithRelations_productsNotCached() {
+        // TODO: добавить проверку на кеширование продуктов
+
         StepVerifier.create(cartItemService.findAllWithRelations())
                 .assertNext(cartItem -> {
                     CartItem expected = cartItem(1L, 3).withProduct(bookProduct().get()).get();
@@ -72,7 +89,15 @@ public class CartItemServiceImplTest {
     }
 
     @Test
-    public void test_removeAll() {
+    public void test_removeAll_cartItemCached() {
+        CartItem cachedCartItem1 = cartItem(1L, 3).get();
+        CartItem cachedCartItem2 = cartItem(2L, 1).get();
+        CartItem cachedCartItem3 = cartItem(4L, 2).get();
+
+        redisDataManager.cacheCartItem(cachedCartItem1);
+        redisDataManager.cacheCartItem(cachedCartItem2);
+        redisDataManager.cacheCartItem(cachedCartItem3);
+
         StepVerifier.create(r2dbcEntityTemplate.select(CartItem.class).all())
                 .expectNextCount(3)
                 .verifyComplete();
@@ -85,6 +110,16 @@ public class CartItemServiceImplTest {
                 .expectNextCount(0)
                 .verifyComplete();
 
-        resetDataManager.resetCartItems();
+        StepVerifier.create(redisDataManager.getCartItemCache(1L))
+                .assertNext(cartItemCache -> assertEquals(0, cartItemCache.count()))
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(2L))
+                .assertNext(cartItemCache -> assertEquals(0, cartItemCache.count()))
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(4L))
+                .assertNext(cartItemCache -> assertEquals(0, cartItemCache.count()))
+                .verifyComplete();
     }
 }
