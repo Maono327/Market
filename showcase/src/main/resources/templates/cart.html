@@ -49,9 +49,30 @@
                 <form action="/buy" method="post" th:if="${!items.isEmpty()}">
                     <div class="hstack gap-3">
                         <h2 th:text="'Итого: '+${total}+' руб.'"/>
-                        <button class="btn btn-warning ms-auto">Купить</button>
+                        <button class="btn btn-warning ms-auto"
+                                th:disabled="${purchase_is_blocked == true}"
+                                th:attr="aria-disabled=${purchase_is_blocked == true}">
+                            Купить
+                        </button>
                     </div>
+                    <br/>
                 </form>
+                <div class="row p-2" th:if="${error != null}">
+                    <div class="col">
+                        <div class="alert alert-danger" role="alert">
+                            <span th:if="${error == 'insufficientFunds'}">Недостаточно средств для оформления заказа.</span>
+                            <span th:if="${error == 'balanceNotFound'}">Баланс не найден. Попробуйте позже.</span>
+                            <span th:if="${error == 'unavailable'}">Сервис платежей не доступен. Попробуйте позже.</span>
+                            <span th:if="${error == 'illegal'}">Некорректная сумма.</span>
+                            <span th:if="${error != 'insufficientFunds' and
+                                            error != 'balanceNotFound' and
+                                            error != 'unavailable' and
+                                            error != 'illegal'}">Произошла ошибка при оформлении заказа.</span>
+                        </div>
+                    </div>
+                </div>
+
+
             </div>
         </div>
     </div>
