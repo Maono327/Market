@@ -1,10 +1,13 @@
 package com.maono.marketapplication.controllers;
 
+import com.maono.marketapplication.exceptions.BalanceNotFoundException;
+import com.maono.marketapplication.exceptions.PurchaseServiceUnavailabe;
 import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.dto.requests.CartPageCountChangeRequest;
 import com.maono.marketapplication.models.dto.responses.ProductDto;
 import com.maono.marketapplication.models.mappers.ProductDtoMapper;
 import com.maono.marketapplication.services.CartItemService;
+import com.maono.marketapplication.services.implementations.PurchaseServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +26,7 @@ import java.util.List;
 public class CartController {
 
     private final CartItemService cartItemService;
+    private final PurchaseServiceImpl purchaseService;
 
     @GetMapping
     public Mono<Rendering> getCartItems() {
@@ -38,16 +42,45 @@ public class CartController {
     protected Mono<Rendering> fillModelAttributes() {
         return cartItemService.findAllWithRelations()
                 .collectList()
-                .map(cartItems -> {
-                    BigDecimal totalSum = cartItemService.calculateTotalSum(cartItems);
-                    List<ProductDto> items = cartItems.stream()
-                                .map(CartItem::getProduct)
-                                .map(ProductDtoMapper::mapProductToDto)
-                                .toList();
-                    return Rendering.view("cart")
-                            .modelAttribute("items", items)
-                            .modelAttribute("total", totalSum)
-                            .build();
+                .flatMap(cartItems -> {
+                    final List<ProductDto> items = cartItems.stream()
+                            .map(CartItem::getProduct)
+                            .map(ProductDtoMapper::mapProductToDto)
+                            .toList();
+
+                    final BigDecimal totalSum = cartItemService.calculateTotalSum(cartItems);
+
+                    return purchaseService.getBalance()
+                            .map(balance -> {
+                                boolean isInsufficientFunds = balance.compareTo(totalSum) < 0;
+
+                                Rendering.Builder<?> bBuilder = Rendering.view("cart")
+                                        .modelAttribute("items", items)
+                                        .modelAttribute("total", totalSum)
+                                        .modelAttribute("purchase_is_blocked", isInsufficientFunds);
+
+                                if (isInsufficientFunds) {
+                                    bBuilder.modelAttribute("error", "insufficientFunds");
+                                }
+                                return bBuilder.build();
+
+                            })
+                            .onErrorResume(BalanceNotFoundException.class, ex -> Mono.just(
+                                    Rendering.view("cart")
+                                            .modelAttribute("items", items)
+                                            .modelAttribute("total", totalSum)
+                                            .modelAttribute("purchase_is_blocked", true)
+                                            .modelAttribute("error", "balanceNotFound")
+                                            .build()
+                            ))
+                            .onErrorResume(PurchaseServiceUnavailabe.class, ex -> Mono.just(
+                                    Rendering.view("cart")
+                                            .modelAttribute("items", items)
+                                            .modelAttribute("total", totalSum)
+                                            .modelAttribute("purchase_is_blocked", true)
+                                            .modelAttribute("error", "unavailable")
+                                            .build()
+                            ));
                 });
     }
 }
