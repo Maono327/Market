@@ -52,12 +52,27 @@
         </div>
         <div class="row p-2">
             <div class="col">
-                <form method="post" th:action="@{/import}" enctype="multipart/form-data" class="card shadow-sm">
+                <form method="post"
+                      th:action="@{/import}"
+                      enctype="multipart/form-data"
+                      class="card shadow-sm">
                     <div class="card-body">
                         <div class="hstack gap-2 align-items-center">
                             <i class="bi bi-upload"></i>
                             <span class="fw-semibold">Импорт товаров (CSV)</span>
-                            <input class="form-control ms-auto" type="file" name="import" accept=".csv,text/csv" required>
+
+                            <input class="form-control ms-auto"
+                                   type="file"
+                                   name="import"
+                                   accept=".csv,text/csv"
+                                   required>
+
+                            <input class="form-control"
+                                   type="file"
+                                   name="images"
+                                   accept="image/*"
+                                   multiple>
+
                             <button class="btn btn-success" type="submit">
                                 <i class="bi bi-cloud-arrow-up"></i> Импорт
                             </button>
