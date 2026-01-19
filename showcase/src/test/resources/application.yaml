@@ -1,3 +1,9 @@
 spring:
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-test.xml
+
+paymentservice:
+  url: http://localhost:8090/
+
+showcase:
+  images-dir: /tmp/dir

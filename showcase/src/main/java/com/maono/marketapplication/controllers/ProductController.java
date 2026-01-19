@@ -16,6 +16,7 @@ import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.ProductService;
 import com.maono.marketapplication.util.ProductSortType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Controller;
@@ -30,8 +31,12 @@ import org.springframework.web.reactive.result.view.Rendering;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 @Controller
@@ -97,14 +102,18 @@ public class ProductController {
     }
 
     @PostMapping("/import")
-    public Mono<Rendering> importProducts(@RequestPart("import") FilePart productsToImport) {
+    public Mono<Rendering> importProducts(
+            @RequestPart("import") FilePart productsToImport,
+            @RequestPart(value = "images", required = false) Flux<FilePart> imagesToImport,
+            @Value("${showcase.images-dir}") String imageDirPath
+    ) {
         CsvMapper csvMapper = CsvMapper.builder()
                 .enable(CsvParser.Feature.TRIM_SPACES)
                 .build();
 
         CsvSchema csvSchema = CsvSchema.emptySchema().withHeader();
 
-        return DataBufferUtils.join(productsToImport.content())
+        Mono<Rendering> importCsv = DataBufferUtils.join(productsToImport.content())
                 .flatMap(dataBuffer -> {
                     if (dataBuffer.readableByteCount() == 0) {
                         DataBufferUtils.release(dataBuffer);
@@ -126,8 +135,10 @@ public class ProductController {
                                     DataBufferUtils.release(dataBuffer);
                                 }
                             })
-                            .flatMap(productService::importProducts)
+                            .flatMap(products -> productService.importProducts(products, imagesToImport, imageDirPath))
                             .thenReturn(Rendering.redirectTo("/items").build());
                 });
+
+        return importCsv;
     }
 }

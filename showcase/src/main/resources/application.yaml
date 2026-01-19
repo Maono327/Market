@@ -18,3 +18,10 @@ spring:
     redis:
       host: ${REDIS_IP}
       port: ${REDIS_PORT}
+
+showcase:
+  images-dir: ${IMAGES_DIR}
+
+paymentservice:
+  url: ${PAYMENT_SERVICE_URL}
+

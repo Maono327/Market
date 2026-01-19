@@ -15,11 +15,13 @@ import com.maono.marketapplication.util.ProductSortType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,7 +31,11 @@ import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = {ProductServiceImpl.class})
 public class ProductServiceImplTest {
@@ -275,6 +281,55 @@ public class ProductServiceImplTest {
         verify(productRepository).findProductsByPage(5, 5, "");
 
         verifyNoMoreInteractions(redisPageRepository, redisCartItemRepository, productRepository, cartItemRepository);
+    }
+
+    @Test
+    public void test_findByPage_productsNotExist() {
+        String search = "";
+        ProductSortType sortType = ProductSortType.NO;
+        int pageSize = 5;
+        int pageNumber = 1;
+
+        Page<Product> expectedPage = page(
+                Collections.emptyList(),
+                5,
+                1,
+                false,
+                false,
+                0
+        );
+
+        when(redisPageRepository.getCachedPage(
+                "",
+                5,
+                1,
+                ""
+        )).thenReturn(Mono.empty());
+
+        when(productRepository.findProductsByPage(5, 0, "")).thenReturn(Flux.empty());
+
+        when(redisProductRepository.getCachedTotalCount("")).thenReturn(Mono.empty());
+        when(productRepository.totalCount()).thenReturn(Mono.just(0));
+        when(redisProductRepository.cacheTotalCount(0, search)).thenReturn(Mono.just(0));
+
+        Page<Product> cached = page(Collections.emptyList(), 5, 1, false, false, 0);
+        when(redisPageRepository.cachePage(cached, 0, 1, 5,  "", ""))
+                .thenReturn(Mono.just(cached));
+
+        StepVerifier.create(productService.findByPage(search, sortType, pageSize, pageNumber))
+                .assertNext(page -> {
+                    assertEquals(expectedPage, page);
+                })
+                .verifyComplete();
+
+        verify(redisPageRepository).getCachedPage("", 5, 1, "");
+        verify(productRepository).findProductsByPage(5, 0, "");
+        verify(redisProductRepository).getCachedTotalCount(search);
+        verify(productRepository).totalCount();
+        verify(redisProductRepository).cacheTotalCount(0, search);
+        verify(redisPageRepository).cachePage(cached, 0, 1, 5, "", "");
+
+        verifyNoMoreInteractions(redisPageRepository, productRepository, redisProductRepository, redisPageRepository);
     }
 
     @Test
@@ -779,19 +834,39 @@ public class ProductServiceImplTest {
     }
 
     @Test
-    public void test_importProducts() {
+    public void test_importProducts_withImages() {
         List<Product> imports = List.of(productByIdTemplate(1L).get(), productByIdTemplate(2L).get());
+
+        Flux<FilePart> images = Flux.empty();
 
         when(productRepository.saveAll(imports)).thenReturn(Flux.fromIterable(imports));
         when(cacheCleaner.cleanCache()).thenReturn(Mono.empty());
 
-        StepVerifier.create(productService.importProducts(imports))
-                .expectNextCount(0)
+        StepVerifier.create(productService.importProducts(imports, images, "/tmp/images"))
                 .verifyComplete();
 
         verify(productRepository).saveAll(imports);
         verify(cacheCleaner).cleanCache();
         verifyNoMoreInteractions(productRepository, cacheCleaner);
+
         verifyNoInteractions(redisPageRepository, cartItemRepository, redisProductRepository, redisCartItemRepository);
     }
+
+    @Test
+    public void test_importProducts_imagesNull() {
+        List<Product> imports = List.of(productByIdTemplate(1L).get(), productByIdTemplate(2L).get());
+
+        when(productRepository.saveAll(imports)).thenReturn(Flux.fromIterable(imports));
+        when(cacheCleaner.cleanCache()).thenReturn(Mono.empty());
+
+        StepVerifier.create(productService.importProducts(imports, null, "/tmp/images"))
+                .verifyComplete();
+
+        verify(productRepository).saveAll(imports);
+        verify(cacheCleaner).cleanCache();
+        verifyNoMoreInteractions(productRepository, cacheCleaner);
+
+        verifyNoInteractions(redisPageRepository, cartItemRepository, redisProductRepository, redisCartItemRepository);
+    }
+
 }

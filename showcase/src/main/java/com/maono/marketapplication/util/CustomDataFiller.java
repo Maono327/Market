@@ -5,13 +5,21 @@ import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 @Component
 @Profile("TEST_DATA")
@@ -21,9 +29,15 @@ public class CustomDataFiller implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(CustomDataFiller.class);
     private final ProductRepository productRepository;
 
+    @Value("${showcase.images-dir}")
+    private String imagesDir;
+
+
     @Override
     public void run(ApplicationArguments args) {
         log.info("TEST DATA FILLING IS STARTED");
+
+        copyTestImages();
 
         Product book = Product.builder()
                 .title("Книга")
@@ -80,5 +94,37 @@ public class CustomDataFiller implements ApplicationRunner {
                 .doOnSuccess(p -> log.info("TEST DATA FILLING IS FINISHED"));
 
         zip.subscribe();
+    }
+
+    private void copyTestImages() {
+        Path targetDir = Paths.get(imagesDir);
+
+        if (!Files.isDirectory(targetDir)) {
+            log.warn("Images DIR doesn't exist: {}", targetDir.toAbsolutePath());
+            return;
+        }
+
+        copyFromClasspath("book.png", targetDir.resolve("book.png"));
+        copyFromClasspath("briefcase.png", targetDir.resolve("briefcase.png"));
+        copyFromClasspath("polaroid.png", targetDir.resolve("polaroid.png"));
+        copyFromClasspath("umbrella.png", targetDir.resolve("umbrella.png"));
+        copyFromClasspath("vase.png", targetDir.resolve("vase.png"));
+    }
+
+
+    private void copyFromClasspath(String fileName, Path to) {
+        String cp = "testdata-images/" + fileName;
+
+        try {
+            ClassPathResource res = new ClassPathResource(cp);
+            if (!res.exists()) {
+                log.warn("Картинка не найдена в classpath: {}", cp);
+                return;
+            }
+            Files.copy(res.getInputStream(), to, REPLACE_EXISTING);
+            log.info("Картинка {} добавлена", cp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

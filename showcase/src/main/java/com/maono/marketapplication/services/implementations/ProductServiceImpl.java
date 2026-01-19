@@ -12,11 +12,18 @@ import com.maono.marketapplication.util.CacheCleaner;
 import com.maono.marketapplication.util.ProductSortType;
 import com.maono.marketapplication.repositories.reactive.ProductRepository;
 import com.maono.marketapplication.services.ProductService;
+import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -147,6 +154,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     protected Mono<List<Product>> attachCartItems(List<Product> products) {
+        if (products.isEmpty()) {
+            return Mono.just(products);
+        }
+
         List<Long> ids = products.stream().map(Product::getId).toList();
         Map<Long, Product> productMap = new HashMap<>();
         products.forEach(product -> productMap.put(product.getId(), product));
@@ -182,7 +193,33 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Mono<Void> importProducts(List<Product> productsToImport) {
-        return productRepository.saveAll(productsToImport).then(cacheCleaner.cleanCache());
+    public Mono<Void> importProducts(List<Product> productsToImport,
+                                     @Nullable Flux<FilePart> imagesToImport,
+                                     String imageDirPath) {
+        return saveImages(imagesToImport, imageDirPath)
+                .then(productRepository.saveAll(productsToImport).then())
+                .then(cacheCleaner.cleanCache());
+    }
+
+    private Mono<Void> saveImages(@Nullable Flux<FilePart> imagesToImport, String imageDirPath) {
+        if (imagesToImport == null) {
+            return Mono.empty();
+        }
+
+        Path uploadDir = Paths.get(imageDirPath);
+
+        return Mono.fromRunnable(() -> {
+                    try {
+                        Files.createDirectories(uploadDir);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                })
+                .then(imagesToImport
+                        .flatMap(fp -> {
+                            String safeName = Paths.get(fp.filename()).getFileName().toString();
+                            return fp.transferTo(uploadDir.resolve(safeName));
+                        })
+                        .then());
     }
 }

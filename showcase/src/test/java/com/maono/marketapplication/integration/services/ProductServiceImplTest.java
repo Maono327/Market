@@ -18,6 +18,7 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.CriteriaDefinition;
 import org.springframework.data.relational.core.query.Query;
+import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
@@ -698,7 +699,7 @@ public class ProductServiceImplTest {
                         .expectNextCount(5)
                         .verifyComplete();
 
-        StepVerifier.create(productService.importProducts(imports))
+        StepVerifier.create(productService.importProducts(imports, Flux.empty(), ""))
                         .expectNextCount(0)
                         .verifyComplete();
 

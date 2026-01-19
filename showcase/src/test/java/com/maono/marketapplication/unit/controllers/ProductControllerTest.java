@@ -22,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
@@ -35,8 +36,7 @@ import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.
 import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.productByIdTemplate;
 import static com.maono.marketapplication.util.ExpectedProductsTestDataProvider.stubProduct;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -356,7 +356,7 @@ class ProductControllerTest {
             }
         };
 
-        when(productService.importProducts(anyList()))
+        when(productService.importProducts(anyList(), any(Flux.class), anyString()))
                 .thenReturn(Mono.empty());
 
         MultipartBodyBuilder mbb = new MultipartBodyBuilder();
@@ -387,7 +387,7 @@ class ProductControllerTest {
                         .build()
         );
 
-        verify(productService).importProducts(eq(expected));
+        verify(productService).importProducts(eq(expected), any(Flux.class), anyString());
         verifyNoMoreInteractions(productService);
         verifyNoInteractions(cartItemService);
     }
