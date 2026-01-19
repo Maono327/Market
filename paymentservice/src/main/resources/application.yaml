@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: PaymentsService
+
+  r2dbc:
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    url: ${R2DBC_DB_URL}
+
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+    enabled: true
+    url: ${JDBC_DB_URL}
+    user: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+balance: 10000.50
+
+server:
+  port: 8090
