@@ -4,6 +4,7 @@ import com.maono.marketapplication.models.Order;
 import com.maono.marketapplication.repositories.reactive.OrderItemRepository;
 import com.maono.marketapplication.repositories.reactive.OrderRepository;
 import com.maono.marketapplication.services.CartItemService;
+import com.maono.marketapplication.services.PurchaseService;
 import com.maono.marketapplication.services.implementations.OrderServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,8 @@ class OrderServiceImplTest {
     protected CartItemService cartItemService;
     @MockitoBean
     protected OrderItemRepository orderItemRepository;
+    @MockitoBean
+    protected PurchaseService purchaseService;
 
     @Test
     public void test_findAllWithRelations() {
@@ -89,6 +92,7 @@ class OrderServiceImplTest {
     @Test
     public void test_buy() {
         BigDecimal totalSum = BigDecimal.valueOf(101 * 2 + 102 * 3 + 103 + 104 * 4);
+        when(purchaseService.doPayment(totalSum)).thenReturn(Mono.empty());
         when(cartItemService.findAllWithRelations()).thenReturn(Flux.fromIterable(cartItemList(List.of(2, 3, 1, 4))));
         when(cartItemService.calculateTotalSum(anyList())).thenReturn(totalSum);
         when(orderItemRepository.saveOrderItems(anyList())).thenReturn(Mono.empty());

@@ -1,5 +1,6 @@
 package com.maono.marketapplication.integration.services;
 
+import com.maono.marketapplication.exceptions.InsufficientFundsException;
 import com.maono.marketapplication.integration.IntegrationTestConfiguration;
 import com.maono.marketapplication.integration.RedisDataManager;
 import com.maono.marketapplication.integration.ResetDataManager;
@@ -7,6 +8,10 @@ import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.Order;
 import com.maono.marketapplication.models.Product;
 import com.maono.marketapplication.services.OrderService;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import reactor.test.StepVerifier;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 
 import static com.maono.marketapplication.util.ExpectedOrderAndOrderItemsTestDataProvider.order;
@@ -36,6 +42,19 @@ public class OrderServiceImplTest {
     protected ResetDataManager resetDataManager;
     @Autowired
     private RedisDataManager redisDataManager;
+
+    private MockWebServer server;
+
+    @BeforeEach
+    void setUp() throws IOException {
+        server = new MockWebServer();
+        server.start(8090);
+    }
+
+    @AfterEach
+    void clear() throws IOException {
+        server.shutdown();
+    }
 
     @Test
     public void test_findAllWithRelations() {
@@ -85,7 +104,9 @@ public class OrderServiceImplTest {
     }
 
     @Test
-    public void test_buy_productsCached() {
+    public void test_buy_productsCached_doPayment_ok() {
+        server.enqueue(new MockResponse().setResponseCode(200));
+
         Product cachedBook = bookProduct().get();
         Product cachedPolaroid = polaroidProduct().get();
         Product cachedVase = vaseProduct().get();
@@ -124,6 +145,53 @@ public class OrderServiceImplTest {
 
         StepVerifier.create(redisDataManager.getCartItemCache(5L))
                 .assertNext(cartItemCache -> assertEquals(0, cartItemCache.count()))
+                .verifyComplete();
+
+        redisDataManager.clear();
+        resetDataManager.resetAll();
+    }
+
+    @Test
+    public void test_buy_doPayment_409() {
+        server.enqueue(new MockResponse().setResponseCode(409));
+
+        Product cachedBook = bookProduct().get();
+        Product cachedPolaroid = polaroidProduct().get();
+        Product cachedVase = vaseProduct().get();
+
+        redisDataManager.cacheProduct(cachedBook);
+        redisDataManager.cacheProduct(cachedPolaroid);
+        redisDataManager.cacheProduct(cachedVase);
+
+        StepVerifier.create(r2dbcEntityTemplate.select(CartItem.class).all()).expectNextCount(3).verifyComplete();
+        StepVerifier.create(r2dbcEntityTemplate
+                        .select(Order.class)
+                        .matching(query(where("id").is(3L)))
+                        .one())
+                .expectNextCount(0).verifyComplete();
+
+        StepVerifier.create(orderService.buy())
+                .expectError(InsufficientFundsException.class)
+                .verify();
+
+        StepVerifier.create(r2dbcEntityTemplate.select(CartItem.class).all()).expectNextCount(3).verifyComplete();
+        StepVerifier.create(r2dbcEntityTemplate
+                        .select(Order.class)
+                        .matching(query(where("id").is(3L)))
+                        .one())
+                .expectNextCount(0)
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(1L))
+                .assertNext(cartItemCache -> assertEquals(3, cartItemCache.count()))
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(2L))
+                .assertNext(cartItemCache -> assertEquals(1, cartItemCache.count()))
+                .verifyComplete();
+
+        StepVerifier.create(redisDataManager.getCartItemCache(5L))
+                .assertNext(cartItemCache -> assertEquals(2, cartItemCache.count()))
                 .verifyComplete();
 
         redisDataManager.clear();
