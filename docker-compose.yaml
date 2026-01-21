@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - appnet
+
+  redis:
+    image: redis:7.4.2-bookworm
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - appnet
+
+  paymentservice:
+    build:
+      context: .
+      dockerfile: paymentservice/Dockerfile
+    image: paymentservice
+    container_name: paymentservice
+    ports:
+      - "8090:8090"
+    depends_on:
+      - postgres
+    environment:
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JDBC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      R2DBC_DB_URL: r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
+    networks:
+      - appnet
+
+  showcase:
+    build:
+      context: .
+      dockerfile: showcase/Dockerfile
+    image: showcase
+    container_name: showcase
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+      - paymentservice
+    environment:
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      IMAGES_DIR: /app/uploads/images
+      JDBC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      R2DBC_DB_URL: r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
+      REDIS_IP: redis
+      REDIS_PORT: 6379
+      PAYMENT_SERVICE_URL: http://paymentservice:8090
+    volumes:
+      - imagesdata:/app/uploads/images
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
+
+volumes:
+  pgdata:
+  imagesdata:

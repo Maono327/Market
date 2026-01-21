@@ -1,0 +1,43 @@
+openapi: 3.1.0
+
+info:
+  title: PaymentService API
+  version: 1.0.0
+
+paths:
+  /buy:
+    post:
+      tags: [Payment]
+      operationId: buy
+      summary: Выполнить списание средств за покупку
+      parameters:
+        - name: sum
+          in: query
+          required: true
+          description: Сумма для списания
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Успешное списание средств
+        '400':
+          description: Сумма некорректна
+        '404':
+          description: Баланс не найден
+        '409':
+          description: Баланс становится отрицательным
+
+  /balance:
+    get:
+      tags: [Payment]
+      operationId: balance
+      summary: Проверить баланс
+      responses:
+        '200':
+          description: Успешое получение баланса
+          content:
+            application/json:
+              schema:
+                type: number
+        '404':
+          description: Баланс не найден
