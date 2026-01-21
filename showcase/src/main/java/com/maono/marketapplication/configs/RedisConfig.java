@@ -1,5 +1,6 @@
 package com.maono.marketapplication.configs;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maono.marketapplication.repositories.redis.util.CartItemCache;
 import com.maono.marketapplication.repositories.redis.util.PageCache;
 import com.maono.marketapplication.repositories.redis.util.ProductCache;
@@ -34,11 +35,12 @@ public class RedisConfig {
 
     @Bean
     public ReactiveRedisTemplate<String, PageCache> pageReactiveRedisTemplate(
+            ObjectMapper objectMapper,
             ReactiveRedisConnectionFactory connectionFactory
     ) {
         RedisSerializer<String> stringRedisSerializer = new StringRedisSerializer();
         RedisSerializer<PageCache> pageCacheSerializer =
-                new Jackson2JsonRedisSerializer<>(PageCache.class);
+                new Jackson2JsonRedisSerializer<>(objectMapper, PageCache.class);
         RedisSerializationContext<String, PageCache> context =
                 RedisSerializationContext.<String, PageCache>newSerializationContext()
                         .key(stringRedisSerializer)
@@ -52,11 +54,12 @@ public class RedisConfig {
 
     @Bean
     public ReactiveRedisTemplate<String, ProductCache> productReactiveRedisTemplate(
+            ObjectMapper objectMapper,
             ReactiveRedisConnectionFactory connectionFactory
     ) {
         RedisSerializer<String> stringRedisSerializer = new StringRedisSerializer();
         RedisSerializer<ProductCache> productRedisSerializer =
-                new Jackson2JsonRedisSerializer<>(ProductCache.class);
+                new Jackson2JsonRedisSerializer<>(objectMapper, ProductCache.class);
         RedisSerializationContext<String, ProductCache> context =
                 RedisSerializationContext.<String, ProductCache>newSerializationContext()
                         .key(stringRedisSerializer)
@@ -70,11 +73,12 @@ public class RedisConfig {
 
     @Bean
     public ReactiveRedisTemplate<String, CartItemCache> cartItemReactiveRedisTemplate(
+            ObjectMapper objectMapper,
             ReactiveRedisConnectionFactory connectionFactory
     ) {
         RedisSerializer<String> stringRedisSerializer = new StringRedisSerializer();
         RedisSerializer<CartItemCache> cartItemRedisSerializer =
-                new Jackson2JsonRedisSerializer<>(CartItemCache.class);
+                new Jackson2JsonRedisSerializer<>(objectMapper, CartItemCache.class);
         RedisSerializationContext<String, CartItemCache> context =
                 RedisSerializationContext.<String, CartItemCache>newSerializationContext()
                         .key(stringRedisSerializer)
