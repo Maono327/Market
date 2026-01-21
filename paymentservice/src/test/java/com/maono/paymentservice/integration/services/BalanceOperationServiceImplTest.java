@@ -29,7 +29,7 @@ public class BalanceOperationServiceImplTest {
 
     @AfterEach
     void cleanUp() {
-        String SQL = "TRUNCATE TABLE balance RESTART IDENTITY;";
+        String SQL = "TRUNCATE TABLE balance;";
 
         r2dbcEntityTemplate.getDatabaseClient().sql(SQL).then().block();
     }
@@ -38,14 +38,12 @@ public class BalanceOperationServiceImplTest {
     void test_saveBalance() {
         StepVerifier.create(r2dbcEntityTemplate
                         .select(AccountBalance.class)
-                        .matching(query(where("id")
-                                .is(1L)))
-                        .first())
+                        .one())
                 .expectNextCount(0)
                 .verifyComplete();
 
         AccountBalance balance = new AccountBalance(new BigDecimal("250.10"));
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("250.10"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("250.10"));
 
         StepVerifier.create(balanceOperationService.saveBalance(balance))
                 .assertNext(saved -> assertEquals(expected, saved))
@@ -60,7 +58,7 @@ public class BalanceOperationServiceImplTest {
                 .using(new AccountBalance(new BigDecimal("250.10")))
                 .block();
 
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("250.10"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("250.10"));
 
         StepVerifier.create(balanceOperationService.getBalance())
                 .assertNext(balance -> assertEquals(expected, balance))
@@ -76,7 +74,7 @@ public class BalanceOperationServiceImplTest {
                 .using(new AccountBalance(new BigDecimal("250.10")))
                 .block();
 
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("150.10"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("150.10"));
 
         StepVerifier.create(balanceOperationService.doPayment(new BigDecimal("100")))
                 .assertNext(balance -> assertEquals(expected, balance))

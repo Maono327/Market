@@ -32,7 +32,7 @@ public class PaymentsControllerTest {
 
     @Test
     void test_balance_ok() {
-        AccountBalance balanceFromDb = new AccountBalance(1L, new BigDecimal("250.10"));
+        AccountBalance balanceFromDb = new AccountBalance(new BigDecimal("250.10"));
         when(balanceOperationService.getBalance()).thenReturn(Mono.just(balanceFromDb));
 
         webTestClient.get()
@@ -64,7 +64,7 @@ public class PaymentsControllerTest {
 
     @Test
     void test_buy_ok() {
-        AccountBalance balance = new AccountBalance(1L, new BigDecimal("100"));
+        AccountBalance balance = new AccountBalance(new BigDecimal("100"));
         when(balanceOperationService.doPayment(eq(new BigDecimal("50")))).thenReturn(Mono.just(balance));
 
         webTestClient.post()

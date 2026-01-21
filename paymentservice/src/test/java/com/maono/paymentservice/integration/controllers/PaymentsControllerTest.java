@@ -81,10 +81,9 @@ public class PaymentsControllerTest {
                 .expectStatus().isOk()
                 .expectBody().isEmpty();
 
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("200.10"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("200.10"));
 
-        StepVerifier.create(r2dbcEntityTemplate.select(AccountBalance.class)
-                .matching(query(where("id").is("1"))).first())
+        StepVerifier.create(r2dbcEntityTemplate.select(AccountBalance.class).one())
                 .assertNext(balance -> assertEquals(expected, balance))
                 .verifyComplete();
     }

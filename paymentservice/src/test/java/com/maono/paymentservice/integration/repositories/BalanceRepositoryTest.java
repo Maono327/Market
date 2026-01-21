@@ -2,7 +2,7 @@ package com.maono.paymentservice.integration.repositories;
 
 import com.maono.paymentservice.integration.PostgresqlContainerConfiguration;
 import com.maono.paymentservice.model.AccountBalance;
-import com.maono.paymentservice.repositories.BalanceRepository;
+import com.maono.paymentservice.repositories.impl.BalanceRepositoryImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,23 +16,23 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DataR2dbcTest
-@Import(PostgresqlContainerConfiguration.class)
+@Import({PostgresqlContainerConfiguration.class, BalanceRepositoryImpl.class})
 public class BalanceRepositoryTest {
     @Autowired
     protected R2dbcEntityTemplate r2dbcEntityTemplate;
     @Autowired
-    protected BalanceRepository balanceRepository;
+    protected BalanceRepositoryImpl balanceRepository;
 
     @AfterEach
     void cleanUp() {
-        String SQL = "TRUNCATE TABLE balance RESTART IDENTITY;";
+        String SQL = "TRUNCATE TABLE balance;";
 
         r2dbcEntityTemplate.getDatabaseClient().sql(SQL).then().block();
     }
 
     @Test
     public void test_save() {
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("100"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("100"));
 
         StepVerifier.create(balanceRepository.save(new AccountBalance(new BigDecimal("100"))))
                 .assertNext(saved -> assertEquals(expected, saved))
@@ -47,24 +47,24 @@ public class BalanceRepositoryTest {
                 .using(new AccountBalance(new BigDecimal("250.10")))
                 .block();
 
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("50"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("50"));
 
-        StepVerifier.create(balanceRepository.save(new AccountBalance(1L, new BigDecimal("50"))))
+        StepVerifier.create(balanceRepository.save(new AccountBalance(new BigDecimal("50"))))
                 .assertNext(updated -> assertEquals(expected, updated))
                 .verifyComplete();
     }
 
     @Test
-    public void test_findById() {
+    public void test_getBalance() {
         r2dbcEntityTemplate
                 .insert(AccountBalance.class)
                 .into("balance")
                 .using(new AccountBalance(new BigDecimal("250.10")))
                 .block();
 
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("250.10"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("250.10"));
 
-        StepVerifier.create(balanceRepository.findById(1L))
+        StepVerifier.create(balanceRepository.getBalance())
                 .assertNext(balance -> assertEquals(expected, balance))
                 .verifyComplete();
     }

@@ -23,7 +23,7 @@ public class BalanceOperationServiceImpl implements BalanceOperationService {
 
     @Override
     public Mono<AccountBalance> getBalance() {
-        return balanceRepository.findById(1L);
+        return balanceRepository.getBalance();
     }
 
     @Override
@@ -32,7 +32,7 @@ public class BalanceOperationServiceImpl implements BalanceOperationService {
             return Mono.error(new IllegalArgumentException("Сумма должна быть больше 0"));
         }
 
-        return balanceRepository.findById(1L)
+        return balanceRepository.getBalance()
                 .switchIfEmpty(Mono.error(new BalanceNotFoundException()))
                 .flatMap(current -> {
                     current.reduce(payment);
@@ -40,7 +40,7 @@ public class BalanceOperationServiceImpl implements BalanceOperationService {
                         return Mono.error(new InsufficientFundsException());
                     }
 
-                     return balanceRepository.save(current);
+                     return balanceRepository.update(current);
                 });
     }
 }

@@ -34,10 +34,10 @@ public class BalanceOperationServiceImplTest {
 
     @Test
     void test_saveBalance() {
-        AccountBalance balance = new AccountBalance(1L, new BigDecimal("250.10"));
+        AccountBalance balance = new AccountBalance(new BigDecimal("250.10"));
         when(balanceRepository.save(any(AccountBalance.class))).thenReturn(Mono.just(balance));
 
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("250.10"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("250.10"));
         StepVerifier.create(balanceOperationService.saveBalance(balance))
                 .assertNext(saved -> assertEquals(expected, saved))
                 .verifyComplete();
@@ -48,34 +48,34 @@ public class BalanceOperationServiceImplTest {
 
     @Test
     void test_getBalance() {
-        AccountBalance balanceFromDb = new AccountBalance(1L, new BigDecimal("250.10"));
-        when(balanceRepository.findById(1L)).thenReturn(Mono.just(balanceFromDb));
+        AccountBalance balanceFromDb = new AccountBalance(new BigDecimal("250.10"));
+        when(balanceRepository.getBalance()).thenReturn(Mono.just(balanceFromDb));
 
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("250.10"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("250.10"));
         StepVerifier.create(balanceOperationService.getBalance())
                 .assertNext(balance -> assertEquals(expected, balance))
                 .verifyComplete();
 
-        verify(balanceRepository).findById(1L);
+        verify(balanceRepository).getBalance();
         verifyNoMoreInteractions(balanceRepository);
     }
 
     @Test
     void test_doPayment() {
-        AccountBalance balanceFromDb = new AccountBalance(1L, new BigDecimal("250.10"));
-        when(balanceRepository.findById(1L)).thenReturn(Mono.just(balanceFromDb));
+        AccountBalance balanceFromDb = new AccountBalance(new BigDecimal("250.10"));
+        when(balanceRepository.getBalance()).thenReturn(Mono.just(balanceFromDb));
 
-        when(balanceRepository.save(any(AccountBalance.class)))
+        when(balanceRepository.update(any(AccountBalance.class)))
                 .thenAnswer(invocationOnMock -> Mono.just(invocationOnMock.getArgument(0)));
 
 
-        AccountBalance expected = new AccountBalance(1L, new BigDecimal("150.10"));
+        AccountBalance expected = new AccountBalance(new BigDecimal("150.10"));
         StepVerifier.create(balanceOperationService.doPayment(new BigDecimal("100")))
                 .assertNext(balance -> assertEquals(expected, balance))
                 .verifyComplete();
 
-        verify(balanceRepository).findById(1L);
-        verify(balanceRepository).save(eq(new AccountBalance(1L, new BigDecimal("150.10"))));
+        verify(balanceRepository).getBalance();
+        verify(balanceRepository).update(eq(new AccountBalance(new BigDecimal("150.10"))));
         verifyNoMoreInteractions(balanceRepository);
     }
 
@@ -100,26 +100,26 @@ public class BalanceOperationServiceImplTest {
 
     @Test
     void test_doPayment_throwBalanceNotFoundException() {
-        when(balanceRepository.findById(1L)).thenReturn(Mono.empty());
+        when(balanceRepository.getBalance()).thenReturn(Mono.empty());
 
         StepVerifier.create(balanceOperationService.doPayment(new BigDecimal("100")))
                 .expectError(BalanceNotFoundException.class)
                 .verify();
 
-        verify(balanceRepository).findById(1L);
+        verify(balanceRepository).getBalance();
         verifyNoMoreInteractions(balanceRepository);
     }
 
     @Test
     void test_doPayment_throwInsufficientFundsException() {
-        AccountBalance balanceFromDb = new AccountBalance(1L, new BigDecimal("250.10"));
-        when(balanceRepository.findById(1L)).thenReturn(Mono.just(balanceFromDb));
+        AccountBalance balanceFromDb = new AccountBalance(new BigDecimal("250.10"));
+        when(balanceRepository.getBalance()).thenReturn(Mono.just(balanceFromDb));
 
         StepVerifier.create(balanceOperationService.doPayment(new BigDecimal("400")))
                 .expectError(InsufficientFundsException.class)
                 .verify();
 
-        verify(balanceRepository).findById(1L);
+        verify(balanceRepository).getBalance();
         verifyNoMoreInteractions(balanceRepository);
     }
 }

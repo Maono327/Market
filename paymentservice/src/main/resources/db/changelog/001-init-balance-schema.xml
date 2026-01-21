@@ -16,10 +16,6 @@
         </preConditions>
 
         <createTable tableName="balance">
-            <column name="id" type="BIGINT IDENTITY">
-                <constraints nullable="false" primaryKey="true"/>
-            </column>
-
             <column name="balance" type="NUMERIC(19,2)">
                 <constraints nullable="false"/>
             </column>
