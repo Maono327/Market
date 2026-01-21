@@ -2,7 +2,7 @@ package com.maono.marketapplication.controllers;
 
 import com.maono.marketapplication.exceptions.BalanceNotFoundException;
 import com.maono.marketapplication.exceptions.InsufficientFundsException;
-import com.maono.marketapplication.exceptions.PurchaseServiceUnavailabe;
+import com.maono.marketapplication.exceptions.PurchaseServiceUnavailable;
 import com.maono.marketapplication.services.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -27,7 +27,7 @@ public class OperationsController {
                         e -> Mono.just(Rendering.redirectTo("/cart/items?error=balanceNotFound").build()))
                 .onErrorResume(IllegalArgumentException.class,
                           e -> Mono.just(Rendering.redirectTo("/cart/items?error=illegal").build()))
-                .onErrorResume(PurchaseServiceUnavailabe.class,
+                .onErrorResume(PurchaseServiceUnavailable.class,
                         e -> Mono.just(Rendering.redirectTo("/cart/items?error=unavailable").build()));
     }
 

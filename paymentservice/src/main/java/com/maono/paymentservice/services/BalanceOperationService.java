@@ -5,7 +5,7 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
-public interface BalanceOperationSerivce {
+public interface BalanceOperationService {
     Mono<AccountBalance> saveBalance(AccountBalance balance);
     Mono<AccountBalance> doPayment(BigDecimal payment);
     Mono<AccountBalance> getBalance();

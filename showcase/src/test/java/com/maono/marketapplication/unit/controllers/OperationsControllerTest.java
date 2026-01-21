@@ -3,7 +3,7 @@ package com.maono.marketapplication.unit.controllers;
 import com.maono.marketapplication.controllers.OperationsController;
 import com.maono.marketapplication.exceptions.BalanceNotFoundException;
 import com.maono.marketapplication.exceptions.InsufficientFundsException;
-import com.maono.marketapplication.exceptions.PurchaseServiceUnavailabe;
+import com.maono.marketapplication.exceptions.PurchaseServiceUnavailable;
 import com.maono.marketapplication.services.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +72,7 @@ class OperationsControllerTest {
 
     @Test
     public void test_createOrder_503_purchaseServiceUnavailable() {
-        when(orderService.buy()).thenReturn(Mono.error(new PurchaseServiceUnavailabe("Сервис платежей не доступен")));
+        when(orderService.buy()).thenReturn(Mono.error(new PurchaseServiceUnavailable("Сервис платежей не доступен")));
 
         webTestClient.post()
                 .uri("/buy")

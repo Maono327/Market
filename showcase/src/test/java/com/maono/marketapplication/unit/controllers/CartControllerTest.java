@@ -2,7 +2,7 @@ package com.maono.marketapplication.unit.controllers;
 
 import com.maono.marketapplication.controllers.CartController;
 import com.maono.marketapplication.exceptions.BalanceNotFoundException;
-import com.maono.marketapplication.exceptions.PurchaseServiceUnavailabe;
+import com.maono.marketapplication.exceptions.PurchaseServiceUnavailable;
 import com.maono.marketapplication.services.CartItemService;
 import com.maono.marketapplication.services.implementations.PurchaseServiceImpl;
 import com.maono.marketapplication.util.ProductActionType;
@@ -158,7 +158,7 @@ class CartControllerTest {
 
     @Test
     public void test_getCartItems_purchaseService_503_balanceNotFound() {
-        when(purchaseService.getBalance()).thenReturn(Mono.error(new PurchaseServiceUnavailabe("Сервис платежей не доступен")));
+        when(purchaseService.getBalance()).thenReturn(Mono.error(new PurchaseServiceUnavailable("Сервис платежей не доступен")));
         when(cartItemService.findAllWithRelations()).thenReturn(Flux.fromIterable(cartItemList(List.of(2, 3, 5, 3, 2))));
         when(cartItemService.calculateTotalSum(anyList()))
                 .thenReturn(BigDecimal.valueOf(2 * 101 + 3 * 102 + 5 * 104 + 3 * 105 + 2 * 106));

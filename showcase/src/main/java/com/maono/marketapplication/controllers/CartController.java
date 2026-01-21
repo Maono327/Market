@@ -1,7 +1,7 @@
 package com.maono.marketapplication.controllers;
 
 import com.maono.marketapplication.exceptions.BalanceNotFoundException;
-import com.maono.marketapplication.exceptions.PurchaseServiceUnavailabe;
+import com.maono.marketapplication.exceptions.PurchaseServiceUnavailable;
 import com.maono.marketapplication.models.CartItem;
 import com.maono.marketapplication.models.dto.requests.CartPageCountChangeRequest;
 import com.maono.marketapplication.models.dto.responses.ProductDto;
@@ -73,7 +73,7 @@ public class CartController {
                                             .modelAttribute("error", "balanceNotFound")
                                             .build()
                             ))
-                            .onErrorResume(PurchaseServiceUnavailabe.class, ex -> Mono.just(
+                            .onErrorResume(PurchaseServiceUnavailable.class, ex -> Mono.just(
                                     Rendering.view("cart")
                                             .modelAttribute("items", items)
                                             .modelAttribute("total", totalSum)

@@ -4,7 +4,7 @@ import com.maono.paymentservice.exceptions.BalanceNotFoundException;
 import com.maono.paymentservice.exceptions.InsufficientFundsException;
 import com.maono.paymentservice.model.AccountBalance;
 import com.maono.paymentservice.repositories.BalanceRepository;
-import com.maono.paymentservice.services.BalanceOperationSerivce;
+import com.maono.paymentservice.services.BalanceOperationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
-public class BalanceOperationServiceImpl implements BalanceOperationSerivce {
+public class BalanceOperationServiceImpl implements BalanceOperationService {
     private final BalanceRepository balanceRepository;
 
     @Override

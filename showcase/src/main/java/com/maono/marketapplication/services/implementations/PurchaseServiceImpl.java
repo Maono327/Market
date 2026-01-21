@@ -2,7 +2,7 @@ package com.maono.marketapplication.services.implementations;
 
 import com.maono.marketapplication.exceptions.BalanceNotFoundException;
 import com.maono.marketapplication.exceptions.InsufficientFundsException;
-import com.maono.marketapplication.exceptions.PurchaseServiceUnavailabe;
+import com.maono.marketapplication.exceptions.PurchaseServiceUnavailable;
 import com.maono.marketapplication.paymentservice.client.api.PaymentApi;
 import com.maono.marketapplication.services.PurchaseService;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +34,7 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     private Throwable mapPaymentServiceError(Throwable ex) {
         if (ex instanceof WebClientRequestException) {
-            return new PurchaseServiceUnavailabe("Сервис платежей не доступен");
+            return new PurchaseServiceUnavailable("Сервис платежей не доступен");
         }
 
         Integer status = extractStatus(ex);
@@ -46,7 +46,7 @@ public class PurchaseServiceImpl implements PurchaseService {
             case 400 -> new IllegalArgumentException("Некорректная сумма");
             case 404 -> new BalanceNotFoundException("Баланс не найден");
             case 409 -> new InsufficientFundsException("Недостаточно средств");
-            case 503 -> new PurchaseServiceUnavailabe("Сервис платежей не доступен");
+            case 503 -> new PurchaseServiceUnavailable("Сервис платежей не доступен");
             default -> ex;
         };
     }

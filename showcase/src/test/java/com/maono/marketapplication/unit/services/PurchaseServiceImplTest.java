@@ -2,7 +2,7 @@ package com.maono.marketapplication.unit.services;
 
 import com.maono.marketapplication.exceptions.BalanceNotFoundException;
 import com.maono.marketapplication.exceptions.InsufficientFundsException;
-import com.maono.marketapplication.exceptions.PurchaseServiceUnavailabe;
+import com.maono.marketapplication.exceptions.PurchaseServiceUnavailable;
 import com.maono.marketapplication.paymentservice.client.api.PaymentApi;
 import com.maono.marketapplication.services.implementations.PurchaseServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -87,7 +87,7 @@ public class PurchaseServiceImplTest {
         when(paymentApi.balance()).thenReturn(Mono.error(exception));
 
         StepVerifier.create(purchaseService.getBalance())
-                .expectError(PurchaseServiceUnavailabe.class)
+                .expectError(PurchaseServiceUnavailable.class)
                 .verify();
 
         verify(paymentApi).balance();
@@ -159,7 +159,7 @@ public class PurchaseServiceImplTest {
         when(paymentApi.buy(any(BigDecimal.class))).thenReturn(Mono.error(exception));
 
         StepVerifier.create(purchaseService.doPayment(new BigDecimal("100.00")))
-                .expectError(PurchaseServiceUnavailabe.class)
+                .expectError(PurchaseServiceUnavailable.class)
                 .verify();
 
         verify(paymentApi).buy(eq(new BigDecimal("100.00")));
@@ -181,7 +181,7 @@ public class PurchaseServiceImplTest {
                 .thenReturn(Mono.error(exception));
 
         StepVerifier.create(purchaseService.doPayment(new BigDecimal("100.00")))
-                .expectError(PurchaseServiceUnavailabe.class)
+                .expectError(PurchaseServiceUnavailable.class)
                 .verify();
 
         verify(paymentApi).buy(eq(new BigDecimal("100.00")));

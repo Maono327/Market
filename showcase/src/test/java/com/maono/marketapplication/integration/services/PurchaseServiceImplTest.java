@@ -3,7 +3,7 @@ package com.maono.marketapplication.integration.services;
 import com.maono.marketapplication.configs.PaymentServiceClientConfig;
 import com.maono.marketapplication.exceptions.BalanceNotFoundException;
 import com.maono.marketapplication.exceptions.InsufficientFundsException;
-import com.maono.marketapplication.exceptions.PurchaseServiceUnavailabe;
+import com.maono.marketapplication.exceptions.PurchaseServiceUnavailable;
 import com.maono.marketapplication.services.implementations.PurchaseServiceImpl;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -78,7 +78,7 @@ class PurchaseServiceImplTest {
 
         StepVerifier.create(purchaseService.getBalance())
                 .expectErrorSatisfies(ex -> {
-                    assertInstanceOf(PurchaseServiceUnavailabe.class, ex);
+                    assertInstanceOf(PurchaseServiceUnavailable.class, ex);
                     assertEquals("Сервис платежей не доступен", ex.getMessage());
                 })
                 .verify();

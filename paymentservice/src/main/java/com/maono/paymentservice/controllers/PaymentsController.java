@@ -2,7 +2,7 @@ package com.maono.paymentservice.controllers;
 
 import com.maono.paymentservice.api.PaymentApi;
 import com.maono.paymentservice.model.AccountBalance;
-import com.maono.paymentservice.services.BalanceOperationSerivce;
+import com.maono.paymentservice.services.BalanceOperationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,11 +15,11 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class PaymentsController implements PaymentApi {
 
-    private final BalanceOperationSerivce balanceOperationSerivce;
+    private final BalanceOperationService balanceOperationService;
 
     @Override
     public Mono<ResponseEntity<BigDecimal>> balance(ServerWebExchange exchange) {
-        return balanceOperationSerivce.getBalance()
+        return balanceOperationService.getBalance()
                 .map(AccountBalance::getAccountBalance)
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
@@ -27,7 +27,7 @@ public class PaymentsController implements PaymentApi {
 
     @Override
     public Mono<ResponseEntity<Void>> buy(BigDecimal sum, ServerWebExchange exchange) {
-        return balanceOperationSerivce.doPayment(sum)
+        return balanceOperationService.doPayment(sum)
                 .thenReturn(ResponseEntity.ok().build());
     }
 }

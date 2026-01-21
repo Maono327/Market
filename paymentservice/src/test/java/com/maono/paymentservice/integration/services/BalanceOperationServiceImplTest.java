@@ -3,8 +3,7 @@ package com.maono.paymentservice.integration;
 import com.maono.paymentservice.exceptions.BalanceNotFoundException;
 import com.maono.paymentservice.exceptions.InsufficientFundsException;
 import com.maono.paymentservice.model.AccountBalance;
-import com.maono.paymentservice.repositories.BalanceRepository;
-import com.maono.paymentservice.services.BalanceOperationSerivce;
+import com.maono.paymentservice.services.BalanceOperationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +23,7 @@ import static org.springframework.data.relational.core.query.Query.query;
 public class BalanceOperationServiceImplTest {
 
     @Autowired
-    protected BalanceOperationSerivce balanceOperationSerivce;
+    protected BalanceOperationService balanceOperationService;
     @Autowired
     protected R2dbcEntityTemplate r2dbcEntityTemplate;
 
@@ -48,7 +47,7 @@ public class BalanceOperationServiceImplTest {
         AccountBalance balance = new AccountBalance(new BigDecimal("250.10"));
         AccountBalance expected = new AccountBalance(1L, new BigDecimal("250.10"));
 
-        StepVerifier.create(balanceOperationSerivce.saveBalance(balance))
+        StepVerifier.create(balanceOperationService.saveBalance(balance))
                 .assertNext(saved -> assertEquals(expected, saved))
                 .verifyComplete();
     }
@@ -63,7 +62,7 @@ public class BalanceOperationServiceImplTest {
 
         AccountBalance expected = new AccountBalance(1L, new BigDecimal("250.10"));
 
-        StepVerifier.create(balanceOperationSerivce.getBalance())
+        StepVerifier.create(balanceOperationService.getBalance())
                 .assertNext(balance -> assertEquals(expected, balance))
                 .verifyComplete();
 
@@ -79,21 +78,21 @@ public class BalanceOperationServiceImplTest {
 
         AccountBalance expected = new AccountBalance(1L, new BigDecimal("150.10"));
 
-        StepVerifier.create(balanceOperationSerivce.doPayment(new BigDecimal("100")))
+        StepVerifier.create(balanceOperationService.doPayment(new BigDecimal("100")))
                 .assertNext(balance -> assertEquals(expected, balance))
                 .verifyComplete();
     }
 
     @Test
     void test_doPayment_throwIllegalArgumentException() {
-        StepVerifier.create(balanceOperationSerivce.doPayment(new BigDecimal("-1")))
+        StepVerifier.create(balanceOperationService.doPayment(new BigDecimal("-1")))
                 .expectError(IllegalArgumentException.class)
                 .verify();
     }
 
     @Test
     void test_doPayment_throwBalanceNotFoundException() {
-        StepVerifier.create(balanceOperationSerivce.doPayment(new BigDecimal("100")))
+        StepVerifier.create(balanceOperationService.doPayment(new BigDecimal("100")))
                 .expectError(BalanceNotFoundException.class)
                 .verify();
     }
@@ -107,7 +106,7 @@ public class BalanceOperationServiceImplTest {
                 .block();
 
 
-        StepVerifier.create(balanceOperationSerivce.doPayment(new BigDecimal("400")))
+        StepVerifier.create(balanceOperationService.doPayment(new BigDecimal("400")))
                 .expectError(InsufficientFundsException.class)
                 .verify();
     }
